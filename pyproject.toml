@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pitopt"
+version = "0.4.0"
+description = "Open-pit ultimate pit optimisation (maximum closure) with nested RAF shells, pushbacks, scheduling, sensitivity and DXF/CSV/Excel/PDF output"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+readme = "README.md"
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "networkx>=3.0",
+    "pyyaml>=6.0",
+    "ezdxf>=1.1",
+    "shapely>=2.0",          # polygon offsetting for the bench design (needs the 2.x vectorised predicates)
+    "matplotlib>=3.7",
+    "XlsxWriter>=3.1",
+    "openpyxl>=3.1",
+    "reportlab>=4.0",
+    "plotly>=5.0",
+    "pillow>=10.0",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp[cli]>=2.0"]
+test = ["pytest>=8", "pypdfium2>=4"]
+dev = ["pytest>=8", "pypdfium2>=4", "ruff>=0.5", "build"]
+
+[project.scripts]
+pitopt = "pitopt.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pitopt*"]
+
+[tool.setuptools.package-data]
+pitopt = ["ui/static/**/*"]          # the web UI ships with the package
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 140
+target-version = "py310"
+extend-exclude = ["projects", "outputs", "dist", "benchmarks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "B008", "B905", "UP007", "UP035"]

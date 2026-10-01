@@ -1,0 +1,22 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      # runs the unit tests; consistency tests over outputs/ skip themselves when there are no runs
+      - run: pytest
+      - name: engine run + independent consistency checks on the bundled example
+        run: |
+          python -m pitopt run --config projects/example_tin/project.yaml
+          pytest tests/test_results_consistency.py tests/test_outputs_consistency.py

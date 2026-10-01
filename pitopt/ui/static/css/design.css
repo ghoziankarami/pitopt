@@ -1,0 +1,45 @@
+/* Detailed design (06). Uses the tokens and components of app.css; only what is particular to these screens is here. */
+.dd .dd-cols{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+.dd .dd-cols>div>.card+.card{margin-top:16px}
+.dd .dd-cols2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:start}
+.dd .dd-cols2>div>.card+.card{margin-top:16px}
+.dd .dd-cols3{display:grid;grid-template-columns:320px minmax(0,1fr) 340px;gap:16px;align-items:start}
+.dd .dd-cols3>div>.card+.card{margin-top:16px}
+.dd .dd-gen{display:grid;grid-template-columns:220px minmax(0,1fr) 320px;gap:14px;align-items:start}
+.dd .dd-sec{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;align-items:start}
+.dd .dd-sec>div>.card+.card{margin-top:16px}
+.dd .dd-two{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;margin-bottom:12px}
+.dd .dd-map{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px}
+.dd .chips{display:flex;flex-wrap:wrap;gap:6px}
+.dd .inset{position:absolute;left:12px;bottom:12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);overflow:hidden}
+.dd .chk{display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer}
+.dd .fld{margin:0}
+.dd .fld .inp input{height:32px}
+.dd .kv{font-size:12.5px}
+.dd .banners.bad .bh{background:transparent}
+.dd .tagc.blokir{color:var(--bad-d);background:var(--bad-fill)}
+.dd .dim td{opacity:.6}
+
+/* the compact rail: the drawing gets the room */
+nav.side.rail{width:56px;padding:14px 6px;align-items:center;overflow:hidden}
+nav.side.rail .navh,nav.side.rail .side-foot,nav.side.rail .subnav,nav.side.rail .grow,nav.side.rail .pill,nav.side.rail .num.xs{display:none}
+nav.side.rail .nav{justify-content:center;padding:8px 4px;width:100%}
+nav.side.rail .nav .no{width:auto;font-size:12px}
+
+/* the design's own steps in the sidebar carry their status at the right */
+.subnav a{display:flex;align-items:center;gap:8px}
+.subnav a>span:first-child{flex:1}
+@media (max-width:1280px){.dd .dd-cols3,.dd .dd-gen{grid-template-columns:1fr}.dd .dd-cols,.dd .dd-cols2,.dd .dd-sec,.dd .dd-map{grid-template-columns:1fr}}
+
+.dd .card{min-width:0}
+.dd .dd-two>*,.dd .dd-cols>*,.dd .dd-cols2>*,.dd .dd-cols3>*,.dd .dd-gen>*,.dd .dd-sec>*{min-width:0}
+.dd .inp{min-width:0}
+.dd .inp input{width:100%;min-width:0}
+.dd .fld select{width:100%}
+.dd table.t td.l{min-width:0}
+.dd .ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.dd .ctl .slice{display:flex;align-items:center;gap:8px;flex:1 1 260px;min-width:220px}
+.dd .ctl .slice input[type=range]{flex:1;min-width:80px}
+.dd table.t td.l b{white-space:normal}
+.dd .dd-two>.card+.card{margin-top:0}
+.dd pre.prov{background:var(--panel2);color:var(--text);max-height:none;white-space:pre-wrap;word-break:break-all;font-size:11.5px}

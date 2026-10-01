@@ -1,0 +1,116 @@
+# Synthetic porphyry copper project — a vertical, pipe-shaped orebody under
+# rolling topography. The contrast case to a thin, flat-lying sheet deposit
+# (e.g. mineral sands): the same optimiser that gives a flat, tabular pit on
+# a sheet gives a bowl here, because the pit shape follows the orebody, not
+# the algorithm.
+#
+# Generate the data first:  make porphyry   (or python scripts/make_synthetic_deposit.py --nx 60 --ny 60 --nz 28)
+
+project:
+  order: 1          # lower = listed first; the first project with results opens by default
+  name: porphyry
+  title: "Porphyry Synthetic"
+  scenario: "Dasar · shells"
+
+block_model:
+  path: data/porphyry_blocks.csv
+  x_col: EAST
+  y_col: NORTH
+  z_col: RL
+  density_col: DENSITY
+  domain_col: DOMAIN
+  dx: 20.0
+  dy: 20.0
+  dz: 15.0
+
+surface:
+  path: data/porphyry_topo.dxf
+  format: dxf
+
+economics:
+  grade_basis: mass_percent
+  mining_recovery: 0.95
+  dilution: 0.05
+  royalty_rate: 0.04
+  mining_cost_per_tonne: 2.20
+  processing_cost_per_tonne: 9.00
+  products:
+    - name: CU
+      grade_col: CU_PCT
+      price: 9000.0
+      plant_recovery: 0.88
+      selling_cost_per_tonne: 700.0
+
+slope:
+  overall_angle_deg: 42.0
+  domain_angles:
+    OXIDE: 35.0
+    TRANS: 40.0
+    FRESH: 45.0
+
+design:
+  bench_height: 15.0
+  bench_face_angle_deg: 70.0
+  cell: 5.0
+  # Detailed design (F-DES-6): sectors, haul ramp and validation on top of the bench geometry above. Off here so
+  # the run is the uniform bowl; the Desain Detail screens build it from the finished run whatever this says.
+  # DEMO VALUES: the sector limits and the Timur/Barat geometry are illustrative, chosen so the validation
+  # flow shows a failing IRA (Timur) and a failing OSA (Barat). They are not a geotechnical recommendation.
+  detail:
+    enabled: false
+    anchor: floor
+    berm: {method: slope}              # berm sized so the inter-ramp angle equals slope.overall_angle_deg
+    sectors:
+      - {name: Utara, azimuth_from: 315, azimuth_to: 45, ira_max_deg: 45.0, osa_max_deg: 46.0}
+      - {name: Timur, azimuth_from: 45, azimuth_to: 135, face_angle_deg: 68.0, ira_max_deg: 41.0, osa_max_deg: 46.0}
+      - {name: Selatan, azimuth_from: 135, azimuth_to: 225, ira_max_deg: 43.0, osa_max_deg: 46.0}
+      - {name: Barat, azimuth_from: 225, azimuth_to: 315, ira_max_deg: 50.0, osa_max_deg: 40.0}
+    ramp:
+      pattern: spiral
+      truck_width_m: 6.5               # 3.5 x 6.5 + 2.25 = 25.0 m for two lanes
+      lanes: 2
+      safety_berm_m: 2.25
+      grade_pct: 9.0
+    limits: {min_mining_width_m: 40.0}
+    grade_classes:
+      grade_col: CU_PCT
+      breaks: [0.20, 0.40, 0.70]
+      names: [Waste, Rendah, Menengah, Tinggi]
+
+shells:
+  revenue_factors: [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]
+
+final_pit:
+  criterion: average
+  tolerance: 0.01
+
+pushbacks:
+  method: shells
+  duration_years: auto
+  min_width: 60.0
+
+schedule:
+  enabled: true
+  ore_capacity: 8000000.0
+  basis: tonnes
+  discount_rate: 0.10
+
+sensitivity:
+  enabled: true
+
+output:
+  directory: ../../outputs/porphyry
+
+provenance:
+  design.detail.sectors.Timur.ira_max_deg:
+    source: asumsi
+    note: "Batas IRA Timur belum berdokumen geoteknik; nilai demo."
+  design.detail.sectors.Barat.osa_max_deg:
+    source: asumsi
+    note: "Batas OSA Barat belum berdokumen geoteknik; nilai demo."
+  design.detail.ramp.grade_pct:
+    source: asumsi
+    note: "Grade 9 % tipikal untuk armada; belum ada spesifikasi alat."
+  design.detail.ramp.truck_width_m:
+    source: dokumen
+    ref: "Spesifikasi alat angkut (demo)"
