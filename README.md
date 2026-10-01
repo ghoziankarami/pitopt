@@ -4,9 +4,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Open-pit strategic mine planning from block models to nested pit shells, pushbacks, schedules, and first-pass bench designs.** PitOpt is an open-source research prototype written in Python, with a local web UI and CSV, DXF, Excel, and PDF outputs.
-
-> **Research use only.** An optimal solution to the encoded graph does not validate the geological model, economic assumptions, slope constraints, schedule, or resulting design. Do not use PitOpt outputs as a certified resource or reserve estimate, an approved mine plan, or an operating design. Read the [release audit](docs/RELEASE_AUDIT.md) before relying on any result.
+PitOpt is an open-source Python application for **strategic open-pit mine planning**. It turns block models and topographic surfaces into nested pit shells, pushbacks, period schedules, and first-pass bench designs, with a local web interface and CSV, DXF, Excel, and PDF outputs.
 
 ## What it does
 
@@ -16,7 +14,7 @@
 - Produces a first-pass benched design, interactive 3D viewer, and tabular and CAD exports.
 - Includes synthetic tin and porphyry examples, plus a separately licensed MineLib solver benchmark.
 
-The closure solver is exact for the finite graph and capacities supplied to it. The broader mining workflow is approximate: slope discretisation, scheduling heuristics, and design geometry introduce assumptions and known discrepancies. The [release audit](docs/RELEASE_AUDIT.md) documents them with measured examples.
+PitOpt solves the maximum-closure problem exactly for the graph and block values supplied to it. Independent solver comparisons and exhaustive small-graph tests are included in the repository. The mining results also depend on the quality of the input model and the assumptions described under [scope and limitations](#scope-and-limitations).
 
 **Live demo:** [pitopt.orebit.id](https://pitopt.orebit.id) — a read-only showcase using synthetic data. It cannot run an optimisation or save project changes.
 
@@ -56,17 +54,16 @@ Typical outputs include:
 
 Run `pitopt validate --config path/to/project.yaml` before an optimisation to check input files and derived parameters. See the [project requirements](docs/PRD.md) and [methodology](docs/METODOLOGI.md) for configuration and calculation details.
 
-## Accuracy and limitations
+## Scope and limitations
 
-Treat outputs as screening and research results, not engineering sign-off. In particular:
+PitOpt covers strategic pit optimisation, sequence-based scheduling, and first-pass bench design. It provides a transparent, reproducible workflow for evaluating assumptions and comparing scenarios.
 
-- The graph optimum is only as valid as the block values and precedence graph supplied to the solver.
-- The schedule follows configured pushback or strip sequences; it does not find a globally optimal block-by-block schedule.
-- The design geometry does not enforce every geotechnical domain constraint used by the optimiser.
-- The sample porphyry design contains more material than its shell, and parts of the schedule exceed configured capacity. Its displayed NPV is therefore not a fully reconciled project valuation.
-- Real projects require independent checks of data, economics, geotechnical assumptions, boundary effects, schedule, and design.
+- **Optimisation:** the maximum-closure solver returns the optimum for the encoded graph. Geological interpretation, block values, and slope precedence are determined by the supplied model and configuration.
+- **Scheduling:** periods follow configured pushback or strip sequences. PitOpt does not solve a globally optimal block-by-block production schedule.
+- **Geotechnical design:** the generated bench geometry is a first-pass design. Domain-specific slope constraints, detailed ramps, and geotechnical sign-off require separate engineering work.
+- **Reconciliation:** the included porphyry example demonstrates why shell, design, schedule, and NPV must be reconciled. Its design contains more material than its shell, and some schedule periods exceed configured capacity.
 
-See [docs/RELEASE_AUDIT.md](docs/RELEASE_AUDIT.md) for test evidence, quantified discrepancies, and deployment limitations.
+PitOpt does not estimate or certify mineral resources or reserves, approve a mine plan, or replace operational and geotechnical review. The [release audit](docs/RELEASE_AUDIT.md) provides test evidence and quantified limitations.
 
 ## Validation and development
 
@@ -80,6 +77,24 @@ pytest
 The tests include small-graph exhaustive checks, comparisons with independent solvers, a MineLib benchmark, pipeline regression cases, and UI/API tests. GitHub Actions runs the suite on Python 3.10 and 3.12.
 
 Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); submit synthetic fixtures only, and include provenance and license notices for third-party material. Report security issues according to [SECURITY.md](SECURITY.md), not in a public issue.
+
+## FAQ
+
+### Is PitOpt open source?
+
+Yes. PitOpt's original code is available under the MIT License. The included MineLib benchmark data and IBM Plex fonts retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Is the calculated pit optimum exact?
+
+The maximum-closure solver finds the exact optimum for the encoded graph and capacities. The result's relevance to a mine plan depends on block values, precedence constraints, geological inputs, and economic assumptions.
+
+### Can I use the results for mine approval or operations?
+
+PitOpt is designed for strategic analysis and scenario comparison. Resource/reserve reporting, geotechnical approval, detailed design, and operational scheduling require qualified independent work.
+
+### Does the online demo accept my data?
+
+No. The [live demo](https://pitopt.orebit.id) uses synthetic data and is read-only. Run PitOpt locally to work with your own models.
 
 ## Privacy and hosted demos
 
