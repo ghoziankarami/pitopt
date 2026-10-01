@@ -27,8 +27,5 @@ htmlcov/
 Thumbs.db
 *.log
 
-# Local publication review archive and alternate virtual environments
-.private-publication-review/
 .venv-*/
 *Zone.Identifier
-public-release/
