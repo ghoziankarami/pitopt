@@ -1,0 +1,6 @@
+# keep Windows launchers CRLF and shell scripts LF whatever the checkout platform
+*.bat text eol=crlf
+*.sh text eol=lf
+PitOpt.command text eol=lf
+# benchmark data is compared byte for byte
+benchmarks/** -text

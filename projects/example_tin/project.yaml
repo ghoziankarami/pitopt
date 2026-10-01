@@ -1,0 +1,87 @@
+project:
+  name: example_tin
+  title: Example Tin — sintetis
+  scenario: Dasar · shells
+block_model:
+  path: example_block_model.csv
+  x_col: XC
+  y_col: YC
+  z_col: ZC
+  grade_col: SN_PCT
+  dx: 10.0
+  dy: 10.0
+  dz: 5.0
+  density: 1.8
+surface:
+  path: example_surface.dxf
+  format: dxf
+  x_col: X
+  y_col: Y
+  z_col: Z
+economics:
+  grade_basis: mass_percent
+  mining_recovery: 0.95
+  dilution: 0.05
+  royalty_rate: 0.03
+  mining_cost_per_tonne: 2.5
+  mining_cost_per_volume: 0.0
+  rehabilitation_cost_per_tonne: 0.0
+  rehabilitation_cost_per_volume: 0.0
+  processing_cost_per_tonne: 9.5
+  processing_cost_per_volume: 0.0
+  products:
+  - name: SN
+    grade_col: SN_PCT
+    price: 30000.0
+    plant_recovery: 0.85
+    density: 1.0
+    processing_cost_per_tonne: 0.0
+    selling_cost_per_tonne: 1500.0
+    selling_cost_per_volume: 0.0
+slope:
+  overall_angle_deg: 38.0
+design:
+  bench_height: 5.0
+  bench_face_angle_deg: 65.0
+  cell: 1.0
+  detail:
+    # ASSUMPTION: no fleet given for this synthetic example; a single-lane
+    # ramp sized for a small ~20 t haul truck, so the bench-design screens
+    # (Sumber/Sektor/Ramp/Validasi/Penampang/Ekspor) have a ramp to draw.
+    ramp:
+      truck_width_m: 6.5
+      lanes: 1
+shells:
+  revenue_factors:
+  - 0.3
+  - 0.4
+  - 0.5
+  - 0.6
+  - 0.7
+  - 0.8
+  - 0.9
+  - 1.0
+  - 1.1
+  - 1.2
+final_pit:
+  criterion: average
+  tolerance: 0.01
+pushbacks:
+  method: shells
+  duration_years: auto
+  target_duration_years: 1.5
+  max_vertical_advance_m: 80
+  max_pushbacks: 6
+  min_width: 50.0
+  max_narrow: 0.3
+  bench_lag_m: 10.0
+schedule:
+  enabled: true
+  ore_capacity: 250000.0
+  basis: tonnes
+  discount_rate: 0.1
+output:
+  directory: ../../outputs/example_tin
+  write_dxf: true
+  write_plot: true
+  dxf_surface_all_shells: false
