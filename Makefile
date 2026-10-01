@@ -20,7 +20,7 @@ help:
 	@echo ""
 	@echo "minelib      solver alone on the MineLib zuck_small benchmark"
 	@echo "verify       independent slope / cone / schedule / design checks on the porphyry result"
-	@echo "cross-check  pseudoflow vs Boykov-Kolmogorov and brute force"
+	@echo "cross-check  NetworkX preflow-push vs SciPy Dinic and brute force"
 	@echo "all          test + example + minelib + porphyry + verify"
 	@echo ""
 	@echo "bundle       concatenate all source into dist/pitopt_source_bundle.md"
