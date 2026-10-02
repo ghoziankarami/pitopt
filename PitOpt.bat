@@ -14,16 +14,16 @@ if not defined LINUXDIR (
   for /f "usebackq delims=" %%i in (`wsl.exe -d %DISTRO% wslpath -a "%~dp0"`) do set "LINUXDIR=%%i"
 )
 if not defined LINUXDIR (
-  echo Tidak bisa menemukan folder di WSL distro %DISTRO%. Ubah DISTRO di file ini.
+  echo Could not find this folder in WSL distribution %DISTRO%. Update DISTRO in this file.
   pause & exit /b 1
 )
-echo Folder WSL: %LINUXDIR%
+echo WSL folder: %LINUXDIR%
 
-echo PitOpt: memulai server di http://localhost:%PORT%  (tutup jendela ini untuk berhenti)
+echo PitOpt is starting at http://localhost:%PORT% (close this window to stop it)
 start "" /b cmd /c "timeout /t 4 /nobreak >nul & start http://localhost:%PORT%"
 wsl.exe -d %DISTRO% --cd "%LINUXDIR%" -e env NO_BROWSER=1 bash scripts/start_ui.sh %PORT%
 echo.
-echo Server berhenti.
+echo PitOpt has stopped.
 pause
 
 exit /b 0
