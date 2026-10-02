@@ -6,9 +6,9 @@ cd "$(dirname "$0")/.."
 PORT="${1:-8765}"
 
 if [ ! -x .venv/bin/python ]; then
-  echo "Setup pertama kali: membuat .venv dan memasang paket (beberapa menit)..."
+  echo "First-time setup: creating a local environment and installing PitOpt. This may take a few minutes..."
   python3 -m venv .venv
-  .venv/bin/pip install --default-timeout=300 -e ".[mcp]"
+  .venv/bin/pip install --default-timeout=300 -e .
 fi
 
 ARGS=(--root . --port "$PORT")

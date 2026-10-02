@@ -20,21 +20,37 @@ PitOpt solves the maximum-closure problem exactly for the graph and block values
 
 ## Install and run
 
-PitOpt requires **Python 3.10 or newer**. It runs on macOS and Linux; on Windows, use **WSL 2 with Ubuntu 24.04**. Native Windows is not currently supported. See the detailed [installation guide](docs/INSTALLATION.md) for first-run setup and troubleshooting.
+Want to try PitOpt first? Open the [live demo](https://pitopt.orebit.id). To run it locally, choose one of these simple options. PitOpt needs Python 3.10+ and an internet connection on first launch. Windows requires WSL 2 with Ubuntu 24.04; native Windows is not supported.
 
-### Start the local web app
+### macOS: download and click
 
-Clone or download this repository, then run the launcher for your system:
+1. [Download the latest ZIP](https://github.com/ghoziankarami/pitopt/archive/refs/heads/main.zip) and extract it.
+2. Open the extracted `pitopt-main` folder and double-click **PitOpt.command**.
+3. Wait for setup to finish; PitOpt opens in your browser at [http://127.0.0.1:8765](http://127.0.0.1:8765).
+
+If macOS blocks the launcher, Control-click `PitOpt.command`, choose **Open**, then confirm. Keep its Terminal window open while using PitOpt; press **Ctrl+C** to stop it.
+
+### macOS or Linux: one terminal command
+
+Paste this single line into Terminal:
 
 ```bash
-git clone https://github.com/ghoziankarami/pitopt.git
-cd pitopt
-bash PitOpt.command          # macOS or Linux
+git clone https://github.com/ghoziankarami/pitopt.git && cd pitopt && bash PitOpt.command
 ```
 
-On first launch, PitOpt creates a local `.venv` and installs its dependencies; this can take a few minutes and requires an internet connection. The launcher opens the app at [http://127.0.0.1:8765](http://127.0.0.1:8765). Keep the terminal window open while using PitOpt; press **Ctrl+C** there to stop it.
+On first launch, the script creates a local environment and installs PitOpt automatically. Keep the terminal open; press **Ctrl+C** to stop the app.
 
-On Windows, install WSL 2 and the **Ubuntu-24.04** distribution, then run `PitOpt.bat` from the repository folder. Alternatively, start it from an Ubuntu WSL terminal with `bash scripts/start_ui.sh`.
+### Windows
+
+Install [WSL 2 with Ubuntu 24.04](https://learn.microsoft.com/en-us/windows/wsl/install), open the Ubuntu app, and paste this command:
+
+```bash
+sudo apt update && sudo apt install -y git python3-venv && git clone https://github.com/ghoziankarami/pitopt.git && cd pitopt && bash scripts/start_ui.sh
+```
+
+When setup finishes, open [http://127.0.0.1:8765](http://127.0.0.1:8765) in your browser. Keep Ubuntu open while using PitOpt; press **Ctrl+C** to stop it. Native Windows is not supported.
+
+For command-line optimisation, development setup, and troubleshooting, see the [installation guide](docs/INSTALLATION.md).
 
 ### Run the synthetic example from the command line
 
