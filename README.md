@@ -18,28 +18,40 @@ PitOpt solves the maximum-closure problem exactly for the graph and block values
 
 **Live demo:** [pitopt.orebit.id](https://pitopt.orebit.id) — a read-only showcase using synthetic data. It cannot run an optimisation or save project changes.
 
-## Quick start
+## Install and run
 
-Requires Python 3.10 or newer. From a terminal:
+PitOpt requires **Python 3.10 or newer**. It runs on macOS and Linux; on Windows, use **WSL 2 with Ubuntu 24.04**. Native Windows is not currently supported. See the detailed [installation guide](docs/INSTALLATION.md) for first-run setup and troubleshooting.
+
+### Start the local web app
+
+Clone or download this repository, then run the launcher for your system:
 
 ```bash
 git clone https://github.com/ghoziankarami/pitopt.git
 cd pitopt
+bash PitOpt.command          # macOS or Linux
+```
+
+On first launch, PitOpt creates a local `.venv` and installs its dependencies; this can take a few minutes and requires an internet connection. The launcher opens the app at [http://127.0.0.1:8765](http://127.0.0.1:8765). Keep the terminal window open while using PitOpt; press **Ctrl+C** there to stop it.
+
+On Windows, install WSL 2 and the **Ubuntu-24.04** distribution, then run `PitOpt.bat` from the repository folder. Alternatively, start it from an Ubuntu WSL terminal with `bash scripts/start_ui.sh`.
+
+### Run the synthetic example from the command line
+
+After cloning the repository, create an environment and install PitOpt:
+
+```bash
 python3 -m venv .venv
-source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps1
+source .venv/bin/activate        # macOS, Linux, or WSL
 python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
+python -m pip install -e .
 python -m pitopt validate --config projects/example_tin/project.yaml
 python -m pitopt run --config projects/example_tin/project.yaml
 ```
 
-The example writes generated reports and surfaces under `outputs/` (ignored by Git). The local web app is available at `http://127.0.0.1:8765`:
+The example writes reports and surfaces under `outputs/` (ignored by Git). To use the local web app after this setup, run `python -m pitopt ui --root . --port 8765`, then open [http://127.0.0.1:8765](http://127.0.0.1:8765). The app runs only on your computer by default.
 
-```bash
-python -m pitopt ui --root . --port 8765
-```
-
-For a menu of common tasks, use `make help`. In particular, `make example` runs the small tin fixture; `make porphyry` generates and runs the larger synthetic porphyry model; and `make verify` runs additional geometric checks on that result.
+For development and tests, install `python -m pip install -e ".[dev]"`. For the optional MCP integration, use `python -m pip install -e ".[mcp]"`. `make setup` installs both. Run `make help` for other tasks; `make example` runs the small tin fixture, `make porphyry` creates and runs the larger synthetic porphyry example, and `make verify` checks its geometry.
 
 ## Input and output
 

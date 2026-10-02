@@ -164,7 +164,7 @@ subscribe(render);
 window.addEventListener("hashchange", route);
 document.documentElement.dataset.theme = S.theme === "dark" ? "dark" : "";
 window.__pitopt = { S, A, i18n: { seen, missing } };
-loadDictionary().then(() => { setLang(lang); return loadProjects(); }).then(async () => { const j = await api("/api/current-job").catch(() => null); if (j && j.status === "running") { S.job = { ...j, scenario: S.scenario }; pollJob(); } }).then(route).catch((e) => { $app.innerHTML = `<div class="loading">Gagal memuat proyek: ${esc(e.message)}</div>`; });
+loadDictionary().then(() => { setLang(lang); return loadProjects(); }).then(async () => { const j = await api("/api/current-job").catch(() => null); if (j && j.status === "running") { S.job = { ...j, scenario: S.scenario }; pollJob(); } }).then(route).catch((e) => { $app.innerHTML = `<div class="loading">Failed to load projects: ${esc(e.message)}</div>`; });
 
 // public read-only showcase: the server reports this via /api/meta (always false for a local install)
 api("/api/meta").then((meta) => {

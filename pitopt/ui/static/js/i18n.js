@@ -1,12 +1,13 @@
-// Interface language. The screens are written in Indonesian; English is a dictionary
-// applied to the HTML (and short strings) just before it reaches the DOM, so every
+// Interface language defaults to English. The screens are written in Indonesian;
+// English is a dictionary applied to the HTML (and short strings) just before it reaches the DOM, so every
 // screen, chart label, dialog and toast switches together and numbers, dates and
 // decimal marks follow the language too.
 //
 // Keys are Indonesian text with every number replaced by {#}; the English value
 // carries the same {#} in the same order. Text with no entry stays as written and is
 // listed in `missing` (see window.__pitopt.i18n) so gaps are found, not guessed.
-export let lang = localStorage.getItem("pitopt-lang") === "en" ? "en" : "id";
+export let lang = localStorage.getItem("pitopt-lang") || "en";
+if (lang !== "en" && lang !== "id") lang = "en";
 export const locale = () => (lang === "en" ? "en-US" : "id-ID");
 export const seen = new Set();
 export const missing = new Set();
