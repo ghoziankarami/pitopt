@@ -12,7 +12,6 @@ import json
 import re
 import shutil
 import threading
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
@@ -20,7 +19,7 @@ import yaml
 
 sync_api = pytest.importorskip("playwright.sync_api")
 
-from pitopt.ui.server import App, make_handler  # noqa: E402
+from pitopt.ui.server import App, UIServer, make_handler  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / ".pytest_runs"
@@ -43,7 +42,7 @@ def site(tmp_path_factory):
         raw.setdefault("output", {})["directory"] = "out"
         yml.write_text(yaml.safe_dump(raw))
         shutil.copytree(RUNS / name, target / "out")
-    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(App(root)))
+    server = UIServer(("127.0.0.1", 0), make_handler(App(root)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_address[1]}", root
     server.shutdown()

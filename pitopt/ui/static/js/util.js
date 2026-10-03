@@ -20,6 +20,8 @@ export async function api(path, opts = {}) {
   const res = await fetch(path, { ...opts, headers: { "X-PitOpt": "1", ...(opts.headers || {}) } });
   const type = res.headers.get("Content-Type") || "";
   const body = type.includes("json") ? await res.json() : await res.text();
+  // A 403 in the public demo means "this needs a local install": show how instead of a bare error.
+  if (res.status === 403 && document.body.classList.contains("demo")) { document.getElementById("modal")?.remove(); location.hash = "#/unggah"; }
   if (!res.ok) throw new Error(tt((body && body.error) || res.statusText));
   return body;
 }

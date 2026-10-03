@@ -801,5 +801,16 @@
 "— Sudut overall (dengan ramp) {#}° melampaui batas {#}° (margin -{#}°).": "— Overall angle (with ramp) of {#}° exceeds the {#}° limit (margin: -{#}°).",
 "Sudut inter-ramp {#}° melampaui batas {#}° (margin -{#}°).": "Inter-ramp angle of {#}° exceeds the {#}° limit (margin: -{#}°).",
 "Sudut overall (dengan ramp) {#}° melampaui batas {#}° (margin -{#}°).": "Overall angle (with ramp) of {#}° exceeds the {#}° limit (margin: -{#}°).",
-"Ubah parameter di Crest &amp; Sektor →": "Edit parameters in Crest &amp; Sectors →"
+"Ubah parameter di Crest &amp; Sektor →": "Edit parameters in Crest &amp; Sectors →",
+"Jalankan dengan data Anda →": "Run it on your own data →",
+"Star di GitHub": "Star on GitHub",
+"Pakai data Anda →": "Use your own data →",
+"Unggah model blok CSV dan topografi DXF Anda sendiri": "Upload your own CSV block model and DXF topography",
+"Jalankan optimasi pit penuh: shell RAF, pit by pit, pushback, jadwal, sensitivitas": "Run the full optimisation: RF shells, pit by pit, pushbacks, schedule, sensitivity",
+"Gratis dan open source (MIT) — data tidak pernah meninggalkan komputer Anda": "Free and open source (MIT) — your data never leaves your computer",
+"Instalasi pertama beberapa menit; contoh sintetis sudah dijalankan saat aplikasi terbuka. Windows: lewat WSL, lihat panduan instalasi.": "First install takes a few minutes; the synthetic examples are already run when the app opens. Windows: via WSL, see the installation guide.",
+"Mulai cepat · macOS / Linux (Python {#}+)": "Quick start · macOS / Linux (Python {#}+)",
+"demo publik ini hanya baca untuk fitur ini — clone dan jalankan sendiri: https://github.com/ghoziankarami/pitopt": "This feature is read-only in the public demo — install PitOpt locally to use it.",
+"endpoint dinonaktifkan di demo publik": "Not available in the public demo — install PitOpt locally to use it.",
+"Ekspor Excel, PDF, DXF dan viewer {#}D": "Export Excel, PDF, DXF and the {#}D viewer"
 }

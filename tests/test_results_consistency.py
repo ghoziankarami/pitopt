@@ -32,7 +32,7 @@ def close(a, b, rel=1e-6, abs_=1e-6):
 
 
 def test_block_value_recomputed_independently(run):
-    """README valuation formula, re-implemented from the run's own parameters."""
+    """Valuation formula from docs/TECHNICAL.md, re-implemented from the run's own parameters."""
     r, b = run
     e = r["params"]["economics"]
     # Grade as a fraction: per cent of mass or volume, parts per million, grams per tonne (also 1e-6 by mass).

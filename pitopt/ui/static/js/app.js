@@ -36,7 +36,7 @@ A.go = (el) => { location.hash = `#/${el.dataset.go}`; };
 function renderDemoBanner() {
   const banner = $("#demo-banner");
   if (!banner || !document.body.classList.contains("demo")) return;
-  banner.innerHTML = `<span>${t("Demo sintetis · prototipe riset, bukan desain siap tambang. NPV memakai shell dan asumsi model.")}</span><a href="https://github.com/ghoziankarami/pitopt" target="_blank" rel="noopener noreferrer">${t("Source code on GitHub →")}</a>`;
+  banner.innerHTML = `<span>${t("Demo sintetis · prototipe riset, bukan desain siap tambang. NPV memakai shell dan asumsi model.")}</span><a href="#/unggah">${t("Jalankan dengan data Anda →")}</a><a href="${esc(S.demoRepoUrl)}" target="_blank" rel="noopener noreferrer">★ ${t("Star di GitHub")}</a>`;
 }
 A.lang = (el) => { setLang(el.dataset.v); renderDemoBanner(); closeModal(); notify(); };
 A.theme = () => setTheme(S.theme === "dark" ? "light" : "dark");
@@ -108,7 +108,7 @@ function shell() {
   <button class="btn" data-act="manage" title="Proyek baru, ganti nama, hapus">Kelola</button>
   <div class="tabs lang" role="group" aria-label="Language"><button data-act="lang" data-v="id" class="${lang === "id" ? "on" : ""}" title="Bahasa Indonesia">ID</button><button data-act="lang" data-v="en" class="${lang === "en" ? "on" : ""}" title="English">EN</button></div>
   <button class="btn" data-act="theme" title="Mode gelap / terang">${S.theme === "dark" ? "☀" : "☾"}</button>
-  <button class="btn primary" data-act="package" ${r ? "" : "disabled"}>Ekspor .zip</button>
+  ${S.demoMode ? `<button class="btn primary" data-go="unggah">Pakai data Anda →</button>` : `<button class="btn primary" data-act="package" ${r ? "" : "disabled"}>Ekspor .zip</button>`}
 </header>
 <div class="shell">
   <nav class="side ${RAIL.has(S.view) ? "rail" : ""}" aria-label="Alur kerja">
