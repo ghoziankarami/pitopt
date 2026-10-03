@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use PitOpt, please cite it as below."
+title: "PitOpt: open-source open-pit strategic mine planning"
+type: software
+authors:
+  - given-names: Ghozi
+    family-names: Ankarami
+version: 0.4.0
+date-released: 2026-10-01
+license: MIT
+repository-code: "https://github.com/ghoziankarami/pitopt"
+url: "https://pitopt.orebit.id"
+keywords:
+  - mining
+  - open-pit optimisation
+  - ultimate pit limit
+  - maximum closure
+  - mine planning
