@@ -840,7 +840,7 @@ def serve(root: str = ".", port: int = 8765, open_browser: bool = True, public_h
     the proxy is expected to present.
 
     demo: read-only public showcase — every POST is refused except the bench-design screens (see
-    DEMO_ALLOWED_POSTS), and the front end shows a banner pointing at the GitHub repo. Falls back to
+    DEMO_ALLOWED_POSTS), and the front end shows a synthetic-demo disclosure banner. Falls back to
     the PITOPT_DEMO env var (any non-empty value means true)."""
     public_host = public_host or os.environ.get("PITOPT_PUBLIC_HOST", "")
     extra_hosts = frozenset(h.strip() for h in public_host.split(",") if h.strip())

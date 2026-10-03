@@ -66,9 +66,8 @@ def open_project(browser, url: str, project: str):
     pg.problems = []
     pg.on("pageerror", lambda e: pg.problems.append(f"pageerror: {e}"))
     pg.on("console", lambda m: pg.problems.append(f"console: {m.text}") if m.type == "error" else None)
+    pg.add_init_script(f"localStorage.setItem('pitopt-scenario-v2','{project}/project'); localStorage.setItem('pitopt-lang','id')")
     pg.goto(url)
-    pg.evaluate(f"localStorage.setItem('pitopt-scenario-v2','{project}/project'); localStorage.setItem('pitopt-lang','id')")
-    pg.reload()
     pg.wait_for_selector("nav.side")
     return pg
 

@@ -1,6 +1,7 @@
 // 06 · Generate & Tinjau — compute the design, watch it arrive bench by bench in 3D, cancel it, read the result.
 import { A } from "../actions.js";
 import { esc, fmt } from "../util.js";
+import { notify } from "../store.js";
 import { D, ensure, pill, running } from "../design/core.js";
 import { findingsBanner, gate, noDesign, notice, page, say } from "../design/ui.js";
 import { paintPlan } from "../design/planview.js";
@@ -24,6 +25,7 @@ export function render() {
       <div class="pbar" style="width:220px"><i style="width:${pct}%"></i></div><span class="num">bench ${job.done || 0} / ${job.total ?? "…"} · ${pct} % · ${fmt(job.elapsed, 1)} s</span><span class="muted small">Bench yang selesai langsung tampil di viewer.</span></div></div>`
     : stale ? `<div class="banners" style="margin-bottom:16px"><div class="bh"><span class="tagc asumsi">BASI</span><span>Parameter berubah sejak desain ini dibuat. Generate ulang agar angka dan gambar sesuai.</span></div></div>`
     : doc ? findingsBanner(doc, { limit: 3 }) : ""}
+  ${D.supportPrompt && doc && !busy ? `<section class="support-card" aria-label="Orebit support"><div><strong>Terbantu oleh PitOpt?</strong><p>Dukung tools open-source, dokumentasi, dan infrastruktur Orebit secara sukarela. Sekali saja—tanpa langganan.</p></div><div class="support-actions"><a class="btn primary" href="https://saweria.co/orebitindonesia" target="_blank" rel="noopener noreferrer">Dukung Orebit →</a><a class="btn" href="https://orebit.id/" target="_blank" rel="noopener noreferrer">Tentang Orebit</a><a class="btn" href="https://github.com/ghoziankarami/pitopt" target="_blank" rel="noopener noreferrer">Source code</a><button class="btn sm" data-act="dSupportDismiss">Nanti</button></div></section>` : ""}
   ${!D.result && !busy ? noDesign() : `
   <div class="dd-gen">
     <div class="card"><div class="navh" style="padding:0 0 8px">SEKTOR GEOTEKNIK</div>
@@ -61,6 +63,7 @@ function valTab(doc) {
 
 A.dTab = (el) => { D.tab = el.dataset.k; import("../store.js").then((m) => m.notify()); };
 A.dVe = (el) => { D.ve = +el.dataset.v; import("../store.js").then((m) => m.notify()); };
+A.dSupportDismiss = () => { D.supportPrompt = false; notify(); };
 
 export function mount() {
   const el = document.getElementById("d3d");

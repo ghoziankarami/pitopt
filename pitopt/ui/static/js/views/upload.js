@@ -3,6 +3,7 @@ import { S, notify, loadProjects2, select } from "../store.js";
 import { A } from "../actions.js";
 import { fmt, fmtInt, esc, api, qs, toast } from "../util.js";
 import { pageHead } from "./common.js";
+import { t } from "../i18n.js";
 
 const fresh = () => ({
   title: "", slug: "", block: null, surface: null, progress: null, busy: false, error: null, warnings: [],
@@ -74,6 +75,14 @@ const drop = (kind, title, hint, done) => `<label class="drop ${done ? "done" : 
   <b>${title}</b><span class="muted small">${done ? `<span class="good">✓</span> ${esc(done)}` : hint}</span></label>`;
 
 export function render() {
+  if (S.demoMode) return `<div class="page">${pageHead(t("Gunakan data Anda sendiri"), t("Jalankan PitOpt secara lokal untuk mengolah model blok Anda."), "")}
+    <div class="card demo-own-data"><span class="tagc info">${t("DEMO PUBLIK")}</span><h2>${t("Gunakan model blok Anda sendiri")}</h2>
+      <p>${t("Demo ini memakai data sampel sintetis yang sudah tersedia. Demo publik tidak menerima unggahan atau menjalankan optimasi pit strategis baru. Untuk menjaga model privat dan menjalankan optimasi penuh, instal PitOpt di komputer Anda.")}</p>
+      <div class="demo-actions"><a class="btn primary" href="${esc(S.demoRepoUrl)}#web-ui" target="_blank" rel="noopener noreferrer">${t("Panduan instalasi lokal →")}</a><a class="btn" href="${esc(S.demoRepoUrl)}" target="_blank" rel="noopener noreferrer">${t("Lihat source code GitHub")}</a></div>
+      <div class="note demo-install"><b>${t("Mulai cepat · macOS / Linux")}</b><pre class="demo-install-code">git clone https://github.com/ghoziankarami/pitopt.git\ncd pitopt\nmake setup &amp;&amp; make ui</pre><span class="small">${t("Petunjuk untuk Windows tersedia di panduan instalasi.")}</span></div>
+    </div>
+    <div class="card demo-own-data"><h2>${t("Coba workflow data sampel di sini")}</h2><p>${t("Pilih salah satu project sintetis dari menu project. Di Desain Detail, Anda bisa mengubah parameter bench, sektor, dan ramp, lalu generate ulang desain. Perubahan hanya disimpan sementara di memori demo ini; upload data dan optimasi pit strategis baru perlu dijalankan secara lokal.")}</p><a class="btn" href="#/d-generate">${t("Buka Desain Detail →")}</a></div>
+  </div>`;
   const b = w.block, i = b?.info, cols = i?.columns || [], numeric = i?.numeric || [];
   const uploading = w.progress ? `<div class="banner small" style="margin-top:12px">Mengunggah ${esc(w.progress.name)} — ${fmt(w.progress.pct * 100, 0)}%<div class="bar"><div style="width:${w.progress.pct * 100}%"></div></div></div>` : "";
   const step2 = b ? `<div class="card" style="margin-top:16px"><div class="cardhead"><h2>2 · Kolom &amp; ukuran blok</h2><span class="lbl">${fmtInt(i.rows)} blok · ${cols.length} kolom</span></div>

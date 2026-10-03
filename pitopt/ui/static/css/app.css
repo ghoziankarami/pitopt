@@ -40,7 +40,7 @@ h3{font-size:12px;font-weight:600;margin:0}
 .good{color:var(--good)} .bad{color:var(--bad)} .accent{color:var(--accent)} .pit{color:var(--pit)}
 
 /* demo banner — hidden unless the server reports demo mode; see /static/js/app.js boot() */
-#demo-banner{display:none;align-items:center;justify-content:center;gap:6px;height:34px;flex:none;
+#demo-banner{display:none;align-items:center;justify-content:center;gap:10px;height:34px;flex:none;padding:0 10px;
   background:var(--warn-bg);color:var(--warn);border-bottom:1px solid var(--warn-line);font-size:12.5px;font-weight:600}
 #demo-banner a{color:inherit;text-decoration:underline}
 body.demo #demo-banner{display:flex}
@@ -211,6 +211,20 @@ table.t input.chg{border-color:var(--accent);background:var(--accent-soft)}
 .banner{border:1px solid var(--line);border-radius:6px;padding:10px 14px;background:var(--panel,#fff)}
 .banner.warn{border-color:var(--warn-line);background:var(--warn-panel)}
 .banner.bad{border-color:var(--bad);background:var(--bad-bg)}
+.support-card{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:14px;padding:14px 16px;border:1px solid var(--accent-line);border-radius:8px;background:var(--accent-soft)}
+.support-card strong{font-size:13px}
+.support-card p{margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.45}
+.support-actions{display:flex;align-items:center;gap:8px;flex:none}
+.support-actions .btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.support-actions .btn.sm{height:30px}
+@media (max-width:760px){.support-card{align-items:flex-start;flex-direction:column}.support-actions{flex-wrap:wrap}}
+.demo-own-data{margin-bottom:16px}
+.demo-own-data h2{margin:10px 0 6px}
+.demo-own-data p{max-width:860px;color:var(--muted);font-size:13px;line-height:1.6}
+.demo-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.demo-actions .btn{display:inline-flex;align-items:center;text-decoration:none}
+.demo-install{max-width:620px;margin-top:16px}
+.demo-install-code{margin:8px 0 4px;white-space:pre-wrap;overflow-wrap:anywhere}
 .drops{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .drop{display:flex;flex-direction:column;gap:4px;padding:18px;border:1.5px dashed var(--input);border-radius:8px;cursor:pointer;background:var(--panel2)}
 .drop:hover{border-color:var(--accent);background:var(--hover)}

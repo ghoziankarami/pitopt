@@ -8,7 +8,7 @@ import { api, toast } from "../util.js";
 const fresh = () => ({
   state: null, block: null, topo: null, err: null, loading: true, draft: {}, job: null, live: [], result: null, notice: null,
   rl: null, plan: null, planBusy: false, section: null, line: null, layers: { shell: true, bench: true, ramp: true, sector: true, blocks: true },
-  color: null, ve: 2, sel: 0, tab: "param", exported: null, baseline: null,
+  color: null, ve: 2, sel: 0, tab: "param", exported: null, supportPrompt: false, baseline: null,
 });
 export const D = { key: "", ...fresh() };
 
@@ -48,6 +48,16 @@ export async function loadResult() {
     await loadPlan();
   } catch (e) { D.result = null; D.notice = e.message; }
   notify();
+}
+
+function maybePromptForSupport() {
+  try {
+    if (localStorage.getItem("pitopt-support-prompted")) return;
+    D.supportPrompt = true;
+    localStorage.setItem("pitopt-support-prompted", "1");
+  } catch { /* storage may be disabled; show it for this session */
+    D.supportPrompt = true;
+  }
 }
 
 export async function loadPlan(rl = D.rl) {
@@ -118,7 +128,7 @@ async function poll() {
       await new Promise((r) => setTimeout(r, 200));
     }
     const status = D.job?.status;
-    if (status === "done") { await loadResult(); await loadState(); toast("Desain selesai."); }
+    if (status === "done") { maybePromptForSupport(); await loadResult(); await loadState(); toast("Desain selesai."); }
     else if (status === "cancelled") toast("Generate dibatalkan — desain sebelumnya tetap ditampilkan.");
     else if (status === "error") D.notice = D.job.error;
     D.live = [];
@@ -131,7 +141,10 @@ export const running = () => D.job?.status === "running";
 export const benches = () => (running() ? D.live : D.result?.benches || []);
 
 export async function exportFiles(kinds) {
-  try { D.exported = (await post("/api/design/export", { kinds })).files; toast(`${D.exported.length} file ditulis ke folder hasil.`); }
+  try {
+    D.exported = (await post("/api/design/export", { kinds })).files;
+    toast(`${D.exported.length} file ditulis ke folder hasil.`);
+  }
   catch (e) { D.notice = e.message; }
   notify();
 }

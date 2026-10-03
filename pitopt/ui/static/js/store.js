@@ -4,6 +4,7 @@ import { api, qs, clone } from "./util.js";
 
 export const S = {
   projects: [], project: null, scenario: null,
+  demoMode: false, demoRepoUrl: "https://github.com/ghoziankarami/pitopt",
   results: null, raw: null, cfg: null, error: null, loading: false,
   view: "ringkasan", draft: {}, ve: +localStorage.getItem("pitopt-ve") || 5, theme: localStorage.getItem("pitopt-theme") || "light",
   job: null, compare: {}, pendingFinal: null,
@@ -16,6 +17,8 @@ export async function loadProjects() {
   const [projects, meta] = await Promise.all([
     api("/api/projects"), api("/api/meta").catch(() => ({})),
   ]);
+  S.demoMode = !!meta.demo;
+  S.demoRepoUrl = meta.repo_url || S.demoRepoUrl;
   S.projects = projects;
   if (!S.project && S.projects.length) {
     const saved = localStorage.getItem("pitopt-scenario-v2");
