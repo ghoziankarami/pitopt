@@ -9,6 +9,7 @@ const post = (path, body) => api(path, { method: "POST", headers: { "Content-Typ
 const mb = (b) => (b >= 1e9 ? `${fmt(b / 1e9, 2)} GB` : b >= 1e6 ? `${fmt(b / 1e6, 1)} MB` : `${fmt(b / 1e3, 0)} kB`);
 
 A.manage = () => {
+  if (S.demoMode) { location.hash = "#/unggah"; return; }      // the public demo cannot create, rename or delete
   const { project, scenario } = scenarioMeta();
   if (!project) return A.newProject();
   modal("Kelola proyek", `

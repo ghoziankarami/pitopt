@@ -1,5 +1,7 @@
 # One entry point for the whole system. `make help` lists the targets.
 
+# Python 3.10+ for `make setup`; override with e.g. `make setup PYTHON=python3.12`
+PYTHON   ?= python3
 PY       ?= .venv/bin/python
 PIP      ?= .venv/bin/pip
 PITOPT   := $(PY) -m pitopt
@@ -27,7 +29,7 @@ help:
 	@echo "clean        remove outputs/ and dist/"
 
 setup:
-	python3 -m venv .venv
+	$(PYTHON) -m venv .venv
 	$(PIP) install --default-timeout=300 -e ".[mcp,dev]"
 
 test:
