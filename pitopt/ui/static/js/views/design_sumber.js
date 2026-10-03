@@ -31,7 +31,7 @@ export function render() {
   <div class="dd-cols">
     <div>
       <div class="card"><div class="cardhead"><h2>Permukaan yang ditemukan</h2><span class="lbl">dibaca dari folder hasil run PitOpt</span></div>
-        <table class="t"><thead><tr><th class="l" style="width:38%">Permukaan</th><th class="l">File</th><th>Ukuran</th><th class="l">Status</th></tr></thead><tbody>
+        <table class="t"><thead><tr><th class="l" style="width:38%">Surfaces</th><th class="l">File</th><th>Size</th><th class="l">Status</th></tr></thead><tbody>
           ${row(true, false, `Pit final RF ${fmt(fp.rf, 2)}`, "mangkuk desain · sumber geometri", "tabel blok · in_pit", `${fmtInt(D.block?.blocks || 0)} blok`, `<span class="tagc ok">OK · dipilih</span>`)}
           ${row(false, !faceDxf, `Face position RF ${fmt(fp.rf, 2)}`, "shell dipotong topografi · overlay referensi", faceDxf?.name || "—", faceDxf ? kb(faceDxf.bytes) : "—", faceDxf ? `<span class="tagc ok">OK · overlay</span>` : `<span class="tagc info">tidak ada</span>`)}
           ${row(false, !shellDxf, "Pit shell (mangkuk)", "surface DXF dari desain bench seragam", shellDxf?.name || "—", shellDxf ? kb(shellDxf.bytes) : "—", shellDxf ? `<span class="tagc ok">OK · referensi</span>` : `<span class="tagc info">tidak ada</span>`)}

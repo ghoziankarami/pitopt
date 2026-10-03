@@ -1,30 +1,27 @@
-# Methodology and validation limits
+# Metodologi dan batas validasi
 
-Block values are calculated from grade, mass or volume basis, price, recovery,
-dilution, royalties, and explicit costs. Maximum closure is reduced to a
-minimum-cut problem and solved with NetworkX preflow-push. The precedence graph
-represents slope constraints at block centers, not continuous geotechnical
-surfaces.
+Nilai blok dihitung dari grade, basis massa/volume, harga, recovery, dilusi,
+royalti dan biaya eksplisit. Maximum closure direduksi ke minimum cut dan
+menggunakan NetworkX preflow-push. Graf presedens merepresentasikan lereng
+pada pusat blok, bukan bidang geoteknik kontinu.
 
-Independent validation includes HiGHS linear programming, SciPy Dinic,
-exhaustive enumeration of small sets, Boykov–Kolmogorov, volume conservation,
-report checks, and DXF reconciliation. Agreement on the optimum does not prove
-that the input assumptions are correct.
+Validasi independen meliputi LP HiGHS, Dinic scipy, enumerasi himpunan kecil,
+Boykov–Kolmogorov, konservasi volume, pengecekan laporan, dan rekonsiliasi DXF.
+Uji silang nilai optimum tidak membuktikan kebenaran asumsi input.
 
-Scheduling is a heuristic with a configured pushback order. The best/worst
-labels refer to the two evaluated sequences; they are not bounds on globally
-optimal NPV. Price sensitivity on a fixed pit does not re-optimize its geometry.
+Jadwal adalah heuristik dengan urutan pushback yang ditetapkan; label best/worst
+menyatakan dua urutan yang dihitung, bukan batas optimum global NPV.
+Sensitivitas harga pada pit tetap tidak mengoptimasi ulang geometri.
 
-Audited synthetic porphyry results: 75,696 blocks, 10 shells, 19 periods, and
-final RF 0.5. The shell reaches the model bottom at 38 blocks, so the pit
-boundary is open and deeper optima have not been investigated. Raster design
-adds about 11.74% rock tonnage over the shell and about 11.47% feed. The input
-overall angle is 42°; the effective template angle is about 43.96° along the
-axis. Zero reported violations use the available checking tolerance and
-discretization; this does not certify that every surface is exactly 42°.
+Hasil porphyry sintetis yang diaudit: 75.696 blok, 10 shell, 19 periode,
+RF final 0,5. Shell menyentuh dasar model pada 38 blok, sehingga batas pit
+belum tertutup dan optimum lebih dalam belum diselidiki. Desain raster
+menambah tonase batuan sekitar 11,74% terhadap shell dan feed sekitar 11,47%.
+Overall angle input 42°, template efektif sekitar 43,96° sepanjang sumbu.
+Angka 0 pelanggaran memakai toleransi/diskretisasi pemeriksaan yang tersedia;
+bukan sertifikasi bahwa setiap permukaan memenuhi tepat 42°.
 
-All example grades, densities, prices, recoveries, and geotechnical parameters
-are synthetic or assumed. Accuracy against a real deposit has not been
-measured. Applying PitOpt to a real study requires data calibration, block-size
-sensitivity analysis, a broader model, geotechnical validation, and independent
-review by qualified professionals.
+Semua grade, densitas, harga, recovery dan parameter geoteknik contoh adalah
+sintetis/asumsi. Akurasi terhadap deposit nyata belum diukur. Penggunaan studi
+nyata membutuhkan kalibrasi data, sensitivitas ukuran blok, model lebih luas,
+validasi geoteknik dan pemeriksaan mandiri oleh tenaga kompeten.

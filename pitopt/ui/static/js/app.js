@@ -33,7 +33,12 @@ let mounted = null;
 
 A.closeModal = closeModal;
 A.go = (el) => { location.hash = `#/${el.dataset.go}`; };
-A.lang = (el) => { setLang(el.dataset.v); closeModal(); notify(); };
+function renderDemoBanner() {
+  const banner = $("#demo-banner");
+  if (!banner || !document.body.classList.contains("demo")) return;
+  banner.innerHTML = `<span>${t("Demo sintetis · prototipe riset, bukan desain siap tambang. NPV memakai shell dan asumsi model.")}</span><a href="https://github.com/ghoziankarami/pitopt" target="_blank" rel="noopener noreferrer">${t("Source code on GitHub →")}</a>`;
+}
+A.lang = (el) => { setLang(el.dataset.v); renderDemoBanner(); closeModal(); notify(); };
 A.theme = () => setTheme(S.theme === "dark" ? "light" : "dark");
 A.showLog = async () => {
   const { log } = await api(`/api/runlog?${qs({ project: S.project, scenario: S.scenario })}`);
@@ -164,13 +169,17 @@ subscribe(render);
 window.addEventListener("hashchange", route);
 document.documentElement.dataset.theme = S.theme === "dark" ? "dark" : "";
 window.__pitopt = { S, A, i18n: { seen, missing } };
-loadDictionary().then(() => { setLang(lang); return loadProjects(); }).then(async () => { const j = await api("/api/current-job").catch(() => null); if (j && j.status === "running") { S.job = { ...j, scenario: S.scenario }; pollJob(); } }).then(route).catch((e) => { $app.innerHTML = `<div class="loading">Failed to load projects: ${esc(e.message)}</div>`; });
-
-// public read-only showcase: the server reports this via /api/meta (always false for a local install)
-api("/api/meta").then((meta) => {
-  if (!meta.demo) return;
-  document.body.classList.add("demo");
-  $("#demo-banner").innerHTML =
-    `Demo sintetis · prototipe riset, bukan desain siap tambang. NPV memakai shell dan asumsi model. Untuk menjalankan sendiri, ` +
-    `<a href="${esc(meta.repo_url)}" target="_blank" rel="noopener">clone dari GitHub</a> dan jalankan lokal.`;
-}).catch(() => {});
+// Load demo mode before the first render so a new hosted-demo visitor sees English immediately.
+loadDictionary().then(async () => {
+  const meta = await api("/api/meta").catch(() => ({}));
+  if (meta.demo) {
+    document.body.classList.add("demo");
+    if (!localStorage.getItem("pitopt-lang")) setLang("en");
+  }
+  setLang(lang);
+  renderDemoBanner();
+  await loadProjects();
+  const job = await api("/api/current-job").catch(() => null);
+  if (job?.status === "running") { S.job = { ...job, scenario: S.scenario }; pollJob(); }
+  route();
+}).catch((e) => { $app.innerHTML = `<div class="loading">Gagal memuat proyek: ${esc(e.message)}</div>`; });

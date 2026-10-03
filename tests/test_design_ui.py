@@ -8,6 +8,7 @@ Needs Playwright with Chromium; skipped where it is not installed.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import threading
 from http.server import ThreadingHTTPServer
@@ -55,6 +56,40 @@ def site(tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
+def demo_site(tmp_path_factory):
+    src = ROOT / ".pytest_runs/example_tin"
+    if not src.exists():
+        pytest.skip("no generated example run")
+    root = tmp_path_factory.mktemp("interactive_demo")
+    project = root / "projects" / "example_tin"
+    shutil.copytree(ROOT / "projects/example_tin", project, ignore=shutil.ignore_patterns("outputs"))
+    raw = yaml.safe_load((project / "project.yaml").read_text())
+    raw["output"] = {"directory": "outputs"}
+    raw.setdefault("design", {})["detail"] = DETAIL
+    (project / "project.yaml").write_text(yaml.safe_dump(raw))
+    shutil.copytree(src, project / "outputs")
+    porphyry = root / "projects" / "porphyry_synthetic"
+    shutil.copytree(ROOT / "projects/porphyry_synthetic", porphyry)
+    shutil.copytree(ROOT / "outputs/porphyry", root / "outputs" / "porphyry")
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(App(root, demo_mode=True)))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_address[1]}"
+    server.shutdown()
+    server.server_close()
+
+
+@pytest.fixture()
+def porphyry_demo_page(browser, demo_site):
+    pg = browser.new_page(viewport={"width": 1440, "height": 1000})
+    pg.set_default_timeout(45000)
+    pg.add_init_script("localStorage.removeItem('pitopt-lang'); localStorage.removeItem('pitopt-scenario-v2')")
+    pg.goto(demo_site)
+    wait_for_app(pg)
+    yield pg
+    pg.close()
+
+
+@pytest.fixture(scope="module")
 def browser():
     with sync_api.sync_playwright() as p:
         try:
@@ -68,6 +103,17 @@ def browser():
         b.close()
 
 
+def wait_for_app(pg):
+    for attempt in range(3):
+        try:
+            pg.wait_for_selector("nav.side", timeout=15000)
+            return
+        except sync_api.TimeoutError:
+            if attempt == 2:
+                raise
+            pg.reload(wait_until="domcontentloaded")
+
+
 @pytest.fixture()
 def page(browser, site):
     pg = browser.new_page(viewport={"width": 1440, "height": 900})
@@ -75,10 +121,22 @@ def page(browser, site):
     pg.problems = []
     pg.on("pageerror", lambda e: pg.problems.append(f"pageerror: {e}"))
     pg.on("console", lambda m: pg.problems.append(f"console: {m.text}") if m.type == "error" else None)
+    pg.add_init_script("localStorage.setItem('pitopt-scenario-v2','example_tin/project'); localStorage.removeItem('pitopt-theme')")
     pg.goto(site)
-    pg.evaluate("localStorage.setItem('pitopt-scenario-v2','example_tin/project'); localStorage.removeItem('pitopt-theme')")
-    pg.reload()
-    pg.wait_for_selector("nav.side")
+    wait_for_app(pg)
+    yield pg
+    pg.close()
+
+
+@pytest.fixture()
+def demo_page(browser, demo_site):
+    pg = browser.new_page(viewport={"width": 1440, "height": 900})
+    pg.set_default_timeout(45000)
+    pg.problems = []
+    pg.on("pageerror", lambda e: pg.problems.append(f"pageerror: {e}"))
+    pg.add_init_script("localStorage.setItem('pitopt-scenario-v2','example_tin/project'); localStorage.removeItem('pitopt-lang'); localStorage.removeItem('pitopt-support-prompted')")
+    pg.goto(demo_site)
+    wait_for_app(pg)
     yield pg
     pg.close()
 
@@ -244,3 +302,51 @@ def test_dark_mode_draws_the_plan_and_the_section(page):
     assert page.evaluate("document.documentElement.dataset.theme") == "dark"
     assert page.evaluate("getComputedStyle(document.body).backgroundColor") != "rgb(242, 243, 245)"
     assert not page.problems, page.problems
+
+
+def test_public_demo_explains_local_upload_and_regenerates_a_sample_design(demo_page):
+    page = demo_page
+    assert page.evaluate("localStorage.getItem('pitopt-lang')") == "en"
+    assert "Source code on GitHub" in page.inner_text("#demo-banner")
+    assert page.locator("#demo-banner a").get_attribute("href") == "https://github.com/ghoziankarami/pitopt"
+    page.click("button[data-act='manage']")
+    page.click("#modal button[data-act='newProject']")
+    page.wait_for_selector("main h1:has-text('Use your own data')")
+    assert "Use your own data" in page.inner_text("main")
+    assert "does not accept uploads" in page.inner_text("main")
+    assert page.locator("main input[type='file']").count() == 0
+    assert page.locator("main a", has_text="Local installation guide").get_attribute("href").endswith("#web-ui")
+
+    page.click("main a[href='#/d-generate']")
+    go(page, "d-ramp")
+    page.fill("input[data-path='ramp.width_m']", "24")
+    page.keyboard.press("Tab")
+    page.wait_for_selector(".fld.changed", timeout=10000)
+    assert page.locator("input[data-path='ramp.width_m']").input_value() == "24"
+    go(page, "d-generate")
+    click_generate(page)
+    page.wait_for_selector(".support-card", timeout=60000)
+    assert "Support Orebit" in page.inner_text(".support-card")
+    assert page.locator(".support-card a[href='https://saweria.co/orebitindonesia']").count() == 1
+    assert not page.problems, page.problems
+
+
+def test_public_demo_defaults_to_english_across_the_entire_ui(porphyry_demo_page):
+    page = porphyry_demo_page
+    assert page.evaluate("localStorage.getItem('pitopt-lang')") == "en"
+    assert page.locator("#proyek").input_value() == "porphyry_synthetic"
+    assert "Source code on GitHub" in page.inner_text("#demo-banner")
+    assert page.locator("#demo-banner a").get_attribute("href") == "https://github.com/ghoziankarami/pitopt"
+    routes = ["data", "qa", "parameter", "jalankan", "ringkasan", "pit-by-pit", "pit-final", "pushback",
+              "rencana", "desain", "blok", "sensitivitas", "d-sumber", "d-sektor", "d-ramp", "d-generate",
+              "d-validasi", "d-penampang", "d-ekspor", "3d", "bandingkan", "ekspor", "unggah"]
+    indonesian_ui_words = re.compile(
+        r"\b(?:belum|dan|dari|untuk|dengan|hasil|sudah|tidak|bisa|satu|proyek|skenario|ringkasan|desain|"
+        r"rencana|parameter|sektor|blok|dipakai|dipilih|muncul|permukaan|terbaca|sintetis|bawah|sebagai|pada|"
+        r"setiap|kosong|lebar|tinggi|sudut|pilih|diisi|otomatis|secara|berdasarkan|tambang|laporan|perlu|ubah|hapus)\b",
+        re.IGNORECASE,
+    )
+    for screen in routes:
+        go(page, screen, wait="main h1")
+        text = page.locator("body").inner_text()
+        assert not indonesian_ui_words.search(text), f"Indonesian copy on {screen}: {text}"
