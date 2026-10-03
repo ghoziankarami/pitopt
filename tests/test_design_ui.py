@@ -60,6 +60,8 @@ def demo_site(tmp_path_factory):
     src = ROOT / ".pytest_runs/example_tin"
     if not src.exists():
         pytest.skip("no generated example run")
+    if not (ROOT / "outputs/porphyry").is_dir():
+        pytest.skip("generated Porphyry demo outputs are provisioned separately")
     root = tmp_path_factory.mktemp("interactive_demo")
     project = root / "projects" / "example_tin"
     shutil.copytree(ROOT / "projects/example_tin", project, ignore=shutil.ignore_patterns("outputs"))
@@ -327,6 +329,15 @@ def test_public_demo_explains_local_upload_and_regenerates_a_sample_design(demo_
     click_generate(page)
     page.wait_for_selector(".support-card", timeout=60000)
     assert "Support Orebit" in page.inner_text(".support-card")
+    generated_copy = page.locator("main").inner_text()
+    indonesian_ui_words = re.compile(
+        r"\b(?:belum|dan|dari|untuk|dengan|hasil|sudah|tidak|bisa|perhatian|perlu|ubah|lalu|regenerasi|"
+        r"sektor|geoteknik|tinggi|tiap|ditampilkan|tersedia|layar|dibangun|ulang|sekitar|detik|dinding|"
+        r"menyatu|tetangga|lewat|batas|azimut|sehingga|lain|dipakai|begitu|saja|berubah|sebelumnya|"
+        r"sudut|melampaui|bukan|peringatan|blokir|lagi|buka|lihat|di|untuk|batuan|umpan)\b",
+        re.IGNORECASE,
+    )
+    assert not indonesian_ui_words.search(generated_copy), generated_copy
     assert page.locator(".support-card a[href='https://saweria.co/orebitindonesia']").count() == 1
     assert not page.problems, page.problems
 
