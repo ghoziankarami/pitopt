@@ -832,6 +832,12 @@ def make_handler(app: App):
     return Handler
 
 
+class UIServer(ThreadingHTTPServer):
+    # The page loads ~45 ES modules at once; the socketserver default backlog of 5 drops some of
+    # them on macOS (ERR_SOCKET_NOT_CONNECTED) and the app then hangs on its loading screen.
+    request_queue_size = 128
+
+
 def serve(root: str = ".", port: int = 8765, open_browser: bool = True, public_host: str | None = None,
           demo: bool | None = None) -> None:
     """public_host: comma-separated hostname(s) (no scheme/port) a reverse proxy in front of this
@@ -848,7 +854,7 @@ def serve(root: str = ".", port: int = 8765, open_browser: bool = True, public_h
     app = App(Path(root), extra_hosts=extra_hosts, demo_mode=demo_mode)
     if not app.projects_dir.is_dir():
         raise SystemExit(f"no projects/ folder under {app.root}")
-    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app))
+    server = UIServer(("127.0.0.1", port), make_handler(app))
     url = f"http://127.0.0.1:{port}/"
     print(f"PitOpt UI  {url}   (root {app.root})   Ctrl+C to stop" + ("   [DEMO — read-only]" if demo_mode else ""))
     if open_browser:

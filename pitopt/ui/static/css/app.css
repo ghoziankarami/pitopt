@@ -233,3 +233,23 @@ table.t input.chg{border-color:var(--accent);background:var(--accent-soft)}
 
 header>*{flex:none}header>.grow{flex:1 1 0}.tabs.lang{flex:none}
 @media (max-width:1360px){header.top .runinfo{display:none}}
+.demo-gets{margin:10px 0 0;padding-left:18px;font-size:13px;line-height:1.7}
+#demo-banner a+a{margin-left:4px}
+
+/* phones: the side nav becomes a scrolling strip above the content, the header wraps */
+@media (max-width:760px){
+  #demo-banner{height:auto;flex-wrap:wrap;padding:6px 10px;text-align:center}
+  #app,body.demo #app{height:auto;min-height:100vh}
+  header.top{height:auto;flex-wrap:wrap;gap:8px;padding:8px 12px}
+  header.top .vsep,header.top .field label,header.top .runinfo,header.top>.grow{display:none}
+  header.top .field{flex:1 1 140px}header.top select{width:100%}
+  .shell{flex-direction:column}
+  nav.side{width:auto;flex-direction:row;align-items:center;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:6px 8px;gap:4px}
+  nav.side .navh,nav.side .side-foot{display:none}
+  nav.side .nav,nav.side .subnav{flex:none;white-space:nowrap}
+  nav.side .nav.parent{margin-top:0}
+  nav.side .subnav{flex-direction:row;padding-left:0}
+  main{overflow:visible;padding:16px 12px 40px}
+  .g4,.fgroup,.drops{grid-template-columns:1fr}
+  .pagehead{flex-wrap:wrap}
+}

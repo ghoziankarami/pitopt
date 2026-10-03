@@ -11,7 +11,6 @@ import json
 import re
 import shutil
 import threading
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
@@ -19,7 +18,7 @@ import yaml
 
 sync_api = pytest.importorskip("playwright.sync_api")
 
-from pitopt.ui.server import App, make_handler  # noqa: E402
+from pitopt.ui.server import App, UIServer, make_handler  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DETAIL = {
@@ -49,7 +48,7 @@ def site(tmp_path_factory):
     empty = root / "projects" / "empty"
     empty.mkdir()
     (empty / "project.yaml").write_text("project: {name: empty, title: Kosong, order: 9}\nblock_model: {path: x.csv}\noutput: {directory: outputs}\n")
-    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(App(root)))
+    server = UIServer(("127.0.0.1", 0), make_handler(App(root)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_address[1]}"
     server.shutdown()
@@ -73,7 +72,7 @@ def demo_site(tmp_path_factory):
     porphyry = root / "projects" / "porphyry_synthetic"
     shutil.copytree(ROOT / "projects/porphyry_synthetic", porphyry)
     shutil.copytree(ROOT / "outputs/porphyry", root / "outputs" / "porphyry")
-    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(App(root, demo_mode=True)))
+    server = UIServer(("127.0.0.1", 0), make_handler(App(root, demo_mode=True)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_address[1]}"
     server.shutdown()
@@ -123,7 +122,8 @@ def page(browser, site):
     pg.problems = []
     pg.on("pageerror", lambda e: pg.problems.append(f"pageerror: {e}"))
     pg.on("console", lambda m: pg.problems.append(f"console: {m.text}") if m.type == "error" else None)
-    pg.add_init_script("localStorage.setItem('pitopt-scenario-v2','example_tin/project'); localStorage.removeItem('pitopt-theme')")
+    # these tests read Indonesian labels; the interface defaults to English
+    pg.add_init_script("if (!localStorage.getItem('pitopt-scenario-v2')) localStorage.setItem('pitopt-scenario-v2','example_tin/project'); localStorage.setItem('pitopt-lang','id'); localStorage.removeItem('pitopt-theme')")
     pg.goto(site)
     wait_for_app(pg)
     yield pg
@@ -317,7 +317,7 @@ def test_public_demo_explains_local_upload_and_regenerates_a_sample_design(demo_
     assert "Use your own data" in page.inner_text("main")
     assert "does not accept uploads" in page.inner_text("main")
     assert page.locator("main input[type='file']").count() == 0
-    assert page.locator("main a", has_text="Local installation guide").get_attribute("href").endswith("#web-ui")
+    assert page.locator("main a", has_text="Local installation guide").get_attribute("href").endswith("docs/INSTALLATION.md")
 
     page.click("main a[href='#/d-generate']")
     go(page, "d-ramp")
