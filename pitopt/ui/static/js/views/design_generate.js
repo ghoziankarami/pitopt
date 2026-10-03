@@ -1,6 +1,7 @@
 // 06 · Generate & Tinjau — compute the design, watch it arrive bench by bench in 3D, cancel it, read the result.
 import { A } from "../actions.js";
 import { esc, fmt } from "../util.js";
+import { t } from "../i18n.js";
 import { notify } from "../store.js";
 import { D, ensure, pill, running } from "../design/core.js";
 import { findingsBanner, gate, noDesign, notice, page, say } from "../design/ui.js";
@@ -57,7 +58,7 @@ function paramTab(s, osa, doc) {
 }
 function valTab(doc) {
   if (!doc) return `<div class="empty">Belum ada hasil.</div>`;
-  return `${doc.findings.map((f) => `<div class="row small" style="gap:8px;padding:7px 0;border-top:1px solid var(--line2);align-items:flex-start">${pill(f.status)}<span>${f.scope ? `<b>${esc(f.scope)}</b> — ` : ""}${esc(say(f))}</span></div>`).join("")}
+  return `${doc.findings.map((f) => `<div class="row small" style="gap:8px;padding:7px 0;border-top:1px solid var(--line2);align-items:flex-start">${pill(f.status)}<span>${f.scope ? `<b>${esc(f.scope)}</b> — ` : ""}${esc(t(say(f)))}</span></div>`).join("")}
     <a data-go="d-validasi" class="btn" style="display:block;text-align:center;margin-top:12px;text-decoration:none">Buka Validasi lengkap →</a>`;
 }
 

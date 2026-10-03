@@ -3,6 +3,7 @@
 import { notify as _n } from "../store.js";
 import { A } from "../actions.js";
 import { esc, fmt } from "../util.js";
+import { t } from "../i18n.js";
 import { pageHead } from "../views/common.js";
 import { S } from "../store.js";
 import { api } from "../util.js";
@@ -99,7 +100,7 @@ export function findingsBanner(doc, { limit = 6, links = true } = {}) {
   const hard = problems.some((f) => f.status === "BLOKIR");
   const rows = problems.slice(0, limit).map((f) => {
     const [to, text] = LINK[f.check] || ["d-validasi", "Buka Validasi →"];
-    return `<div class="brow">${pill(f.status)}<span class="tagc info">${NAME[f.check] || f.check}</span><span class="txt">${f.scope ? `<b>${esc(f.scope)}</b> — ` : ""}${esc(say(f))}</span>${links ? `<a data-go="${to}">${text}</a>` : ""}</div>`;
+    return `<div class="brow">${pill(f.status)}<span class="tagc info">${NAME[f.check] || f.check}</span><span class="txt">${f.scope ? `<b>${esc(f.scope)}</b> — ` : ""}${esc(t(say(f)))}</span>${links ? `<a data-go="${to}">${text}</a>` : ""}</div>`;
   }).join("");
   return `<div class="banners ${hard ? "bad" : ""}"><div class="bh"><span style="font-size:18px">⚠</span><b>${problems.length} hal perlu perhatian</b><span class="muted small">— bukan error yang memblokir; ubah parameter lalu regenerasi</span></div>${rows}${problems.length > limit ? `<div class="brow muted small">+ ${problems.length - limit} lagi di layar Validasi.</div>` : ""}</div>`;
 }
