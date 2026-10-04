@@ -526,12 +526,12 @@ convention produces an *inverted* pit with no error message.
 - **Not a block-level NPV-optimising scheduler.** The plan schedule fills
   periods to capacity along a specified pushback or strip sequence, and
   pushback selection searches over shell boundaries — but individual
-  blocks are not re-sequenced by MILP, and ramps, haul distances and
-  equipment are not modelled. Best and worst case bracket the plan.
+  blocks are not re-sequenced by MILP, and haul distances and equipment
+  are not modelled. Best and worst case bracket the plan.
 - **Design is automated, not detailed.** Walls are benched to the given
-  bench height, face angle and berm, but there are no ramps, no
-  azimuth-dependent slopes, and the design uses one overall geometry even
-  where the optimiser used per-domain angles. It is a first-pass design to
+  bench height, face angle and berm, with a ramp and geotechnical sectors
+  set in Detailed Design, but the optimiser itself still uses one overall
+  slope geometry (or per-domain angles) and ramp haulage is not modelled. It is a first-pass design to
   reconcile against, not a replacement for detailed design and
   geotechnical review.
 - **One destination.** Mill or waste. No stockpiles, no multiple process
