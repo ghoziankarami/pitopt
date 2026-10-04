@@ -309,10 +309,9 @@ def test_dark_mode_draws_the_plan_and_the_section(page):
 def test_public_demo_explains_local_upload_and_regenerates_a_sample_design(demo_page):
     page = demo_page
     assert page.evaluate("localStorage.getItem('pitopt-lang')") == "en"
-    assert "Source code on GitHub" in page.inner_text("#demo-banner")
-    assert page.locator("#demo-banner a").get_attribute("href") == "https://github.com/ghoziankarami/pitopt"
-    page.click("button[data-act='manage']")
-    page.click("#modal button[data-act='newProject']")
+    assert "Star on GitHub" in page.inner_text("#demo-banner")
+    assert page.locator("#demo-banner a[target=_blank]").get_attribute("href") == "https://github.com/ghoziankarami/pitopt"
+    page.click("button[data-act='manage']")                    # the demo cannot manage projects: it explains the local install
     page.wait_for_selector("main h1:has-text('Use your own data')")
     assert "Use your own data" in page.inner_text("main")
     assert "does not accept uploads" in page.inner_text("main")
@@ -346,8 +345,8 @@ def test_public_demo_defaults_to_english_across_the_entire_ui(porphyry_demo_page
     page = porphyry_demo_page
     assert page.evaluate("localStorage.getItem('pitopt-lang')") == "en"
     assert page.locator("#proyek").input_value() == "porphyry_synthetic"
-    assert "Source code on GitHub" in page.inner_text("#demo-banner")
-    assert page.locator("#demo-banner a").get_attribute("href") == "https://github.com/ghoziankarami/pitopt"
+    assert "Star on GitHub" in page.inner_text("#demo-banner")
+    assert page.locator("#demo-banner a[target=_blank]").get_attribute("href") == "https://github.com/ghoziankarami/pitopt"
     routes = ["data", "qa", "parameter", "jalankan", "ringkasan", "pit-by-pit", "pit-final", "pushback",
               "rencana", "desain", "blok", "sensitivitas", "d-sumber", "d-sektor", "d-ramp", "d-generate",
               "d-validasi", "d-penampang", "d-ekspor", "3d", "bandingkan", "ekspor", "unggah"]
