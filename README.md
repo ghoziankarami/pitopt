@@ -1,129 +1,129 @@
 # PitOpt
 
-**Open-source open-pit mine planning — from block model to benched pit design.**
-
 [![CI](https://github.com/ghoziankarami/pitopt/actions/workflows/ci.yml/badge.svg)](https://github.com/ghoziankarami/pitopt/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![Live demo](https://img.shields.io/badge/live%20demo-pitopt.orebit.id-C9A97A.svg)](https://pitopt.orebit.id)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-PitOpt takes a block model (CSV) and a topography surface (DXF) and produces
-nested revenue-factor shells, a discounted pit-by-pit analysis, the final pit
-chosen on NPV, pushbacks, a period-by-period mine plan, a benched pit design
-with ramps, and price sensitivity — as Excel and PDF reports, DXF surfaces and
-an interactive 3D viewer. It runs on your own computer; your data never leaves it.
+PitOpt is a local application for open-pit planning studies. It reads a block
+model, applies economic and slope assumptions, and produces pit shells,
+pushbacks, a mining sequence, and preliminary bench and ramp geometry.
 
-![PitOpt results summary for the synthetic porphyry example](docs/images/screenshot-summary.png)
+Use the [read-only demo](https://pitopt.orebit.id) to explore synthetic examples,
+or install the application to work with your own data. Local project files are
+processed on your computer.
 
-**[Try the live demo →](https://pitopt.orebit.id)** (synthetic data, read-only, no sign-up)
-&nbsp;·&nbsp; **[Install it in 3 minutes →](#install)**
+![Results for the synthetic porphyry example](docs/images/screenshot-summary.png)
 
-## Features
+## What it does
 
-- **Exact ultimate-pit optimisation.** Every shell is a maximum closure solved
-  with NetworkX preflow-push, cross-checked against an unrelated max-flow
-  solver and brute force.
-- **Strategic workflow.** Nested RF shells, pit-by-pit with best/worst-case NPV,
-  final pit selection, pushbacks, a capacity-constrained schedule and price
-  sensitivity.
-- **Detailed design.** Benches, berms and ramps per geotechnical sector, with
-  validation against inter-ramp and overall slope limits and reconciliation to
-  the optimised shell.
-- **Your data, as delivered.** Map any CSV column names (Surpac, Datamine,
-  Vulcan, GEMS, Leapfrog exports); multi-product and by-product economics;
-  `pitopt reblock` regularises sub-celled models.
-- **Web UI and CLI.** A local browser app in English or Indonesian, a `pitopt`
-  command for scripting, and an optional MCP server.
+| Step | Inputs and outputs |
+| --- | --- |
+| Prepare data | CSV block models with configurable column mapping; optional DXF or XYZ topography. |
+| Calculate shells | Maximum-closure optimisation using NetworkX preflow-push at several revenue factors. |
+| Compare plans | Discounted pit-by-pit analysis, pushbacks, capacity-based scheduling, and price sensitivity. |
+| Review geometry | Benches, berms, ramps, sector slope checks, and reconciliation with the selected shell. |
+| Export | Excel and PDF reports, DXF surfaces, and an interactive 3D view. |
 
-<details>
-<summary>More screenshots</summary>
-
-![3D view with topography, pit shell and pushbacks](docs/images/screenshot-3d.png)
-
-</details>
+The browser interface supports English and Indonesian. A command-line interface
+is included; MCP integration is optional.
 
 ## Install
 
-You need **Python 3.10 or newer** and **Git**. Check with `python3 --version`.
-The stock `python3` on macOS is 3.9 — install a newer one from
-[python.org](https://www.python.org/downloads/) or with `brew install python`.
+Requirements: Python 3.10 or newer and Git. On Linux or WSL, Python's
+`venv` package must also be installed. Windows support is through WSL 2;
+native Windows is not supported.
 
-**macOS / Linux** — paste into a terminal:
+### macOS or Linux
 
-```bash
-git clone https://github.com/ghoziankarami/pitopt.git && cd pitopt && bash PitOpt.command
-```
-
-**Windows** — PitOpt runs in [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install)
-(Ubuntu). In the Ubuntu terminal:
+Check `python3 --version` first. If it is older than 3.10, install a supported
+version from [python.org](https://www.python.org/downloads/).
 
 ```bash
-sudo apt update && sudo apt install -y git python3-venv && git clone https://github.com/ghoziankarami/pitopt.git && cd pitopt && bash scripts/start_ui.sh
+git clone https://github.com/ghoziankarami/pitopt.git
+cd pitopt
+bash scripts/start_ui.sh
 ```
 
-The first launch creates a local `.venv`, installs PitOpt, runs the bundled
-synthetic examples and opens <http://127.0.0.1:8765>. It takes a few minutes
-once; later launches start in seconds. Keep the terminal open while you use the
-app and press **Ctrl+C** to stop it. To start it again later, run
-`bash PitOpt.command` (macOS/Linux) or `bash scripts/start_ui.sh` (WSL) from the
-`pitopt` folder.
+### Windows with WSL 2 / Ubuntu
 
-No Git? [Download the ZIP](https://github.com/ghoziankarami/pitopt/archive/refs/heads/main.zip),
-extract it and double-click `PitOpt.command` (macOS). More options and
-troubleshooting: [docs/INSTALLATION.md](docs/INSTALLATION.md).
+Install WSL using [Microsoft's guide](https://learn.microsoft.com/en-us/windows/wsl/install).
+Then run these commands in Ubuntu:
 
-## Use it
+```bash
+sudo apt update
+sudo apt install -y git python3-venv
+git clone https://github.com/ghoziankarami/pitopt.git
+cd pitopt
+bash scripts/start_ui.sh
+```
 
-**With your own data:** in the app, open **Manage → New project**, upload a
-block model (CSV) and optionally a topography (DXF or CSV XYZ). The wizard
-detects coordinate columns and block size, asks for prices, costs, recoveries
-and slopes, and marks every value you did not enter as an assumption.
+The first launch creates `.venv`, installs dependencies, generates the synthetic
+porphyry data, and runs the tin example. Setup needs an internet connection;
+duration depends on your computer and connection. Open
+[http://127.0.0.1:8765](http://127.0.0.1:8765) if the browser does not open.
 
-**From the command line:**
+Keep the terminal open while working. Press **Ctrl+C** to stop the server.
+For later sessions, run `bash scripts/start_ui.sh` from the same folder.
+
+Without Git, [download the source ZIP](https://github.com/ghoziankarami/pitopt/archive/refs/heads/main.zip),
+extract it, and run `bash scripts/start_ui.sh` in the extracted folder.
+See [installation and troubleshooting](docs/INSTALLATION.md) for other options.
+
+## First project
+
+In the application, choose **Manage → New project** (or **Kelola → Proyek baru**).
+Upload a CSV block model and, if available, topography. Review the detected
+coordinates, block dimensions, prices, costs, recoveries, and slopes before
+running a calculation. Values filled by the application are assumptions.
+
+To run the bundled tin example from a terminal:
 
 ```bash
 source .venv/bin/activate
-pitopt validate --config projects/example_tin/project.yaml   # checks files, prints the cutoff grade
-pitopt run      --config projects/example_tin/project.yaml   # writes reports to outputs/example_tin/
-pitopt ui                                                   # the web app
+python -m pitopt validate --config projects/example_tin/project.yaml
+python -m pitopt run --config projects/example_tin/project.yaml
 ```
 
-Copy `projects/example_tin/` to start your own project; its `project.yaml` is
-the fully commented template.
+Results are written under `outputs/`. Copy `projects/example_tin/` when creating
+a project configuration; its YAML file documents the available settings.
 
-## Documentation
+## Limitations
 
-| Document | Contents |
-|---|---|
-| [INSTALLATION.md](docs/INSTALLATION.md) | Install options, troubleshooting, optional extras |
-| [TECHNICAL.md](docs/TECHNICAL.md) | Outputs, configuration, block valuation, workflow, design, verification, model size, CLI and MCP reference |
-| [METODOLOGI.md](docs/METODOLOGI.md) | Calculation rules end to end with a worked example (Indonesian) |
-| [RELEASE_AUDIT.md](docs/RELEASE_AUDIT.md) | Release audit and known numerical limitations |
-| [PRD.md](docs/PRD.md) | Product requirements for the app |
+PitOpt is a research and strategic-planning prototype. The maximum-closure
+solver optimises the supplied discrete graph; that does not establish the
+accuracy of the geology, slope discretisation, costs, schedule, or design.
 
-## Scope and limitations
+Scheduling uses sequence heuristics. Design geometry may differ from the shell
+used for economic calculations. NetworkX graphs can require substantial memory
+on large models. Read the [release audit](docs/RELEASE_AUDIT.md) and
+[technical limitations](docs/TECHNICAL.md#what-this-is-not) before using results
+in a study. Outputs need independent mining, economic, and geotechnical review.
 
-PitOpt is a strategic planning and research prototype. The closure solve is
-exact; what is approximate is everything around it — the slope template, flat
-costs, one process destination, a schedule that follows a specified sequence
-rather than optimising every block, and in-memory graphs that limit models to
-the low hundreds of thousands of blocks. An optimum of the discrete graph is
-**not** a certified resource or reserve estimate, a geotechnically approved pit
-or an optimal production schedule. Read
-[What this is not](docs/TECHNICAL.md#what-this-is-not) before taking a number
-to a study.
+## Repository and documentation
 
-## Contributing
+| Path | Contents |
+| --- | --- |
+| `pitopt/core/` | Optimisation, economics, scheduling, and design calculations. |
+| `pitopt/io/`, `pitopt/ui/` | Imports, exports, local server, and browser interface. |
+| `projects/` | Synthetic example configurations and input data. |
+| `tests/`, `benchmarks/` | Regression checks and independent solver comparisons. |
+| `scripts/` | Launchers and data-generation utilities. |
+| `docs/` | Installation, methodology, technical reference, and release audit. |
 
-Bug reports, ideas and pull requests are welcome — see
-[CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
-Report security issues privately as described in [SECURITY.md](SECURITY.md).
-If PitOpt is useful to you, a ⭐ on GitHub helps others find it.
+- [Installation](docs/INSTALLATION.md)
+- [Technical reference](docs/TECHNICAL.md)
+- [Calculation methodology in Indonesian](docs/METODOLOGI.md)
+- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 ## License and citation
 
-PitOpt is released under the [MIT License](LICENSE). Bundled fonts (OFL-1.1)
-and MineLib benchmark files (CC BY-SA 3.0) keep their own licenses; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). If you use PitOpt in research,
-please cite it using [CITATION.cff](CITATION.cff) (GitHub's "Cite this
-repository" button).
+The original code is licensed under [MIT](LICENSE). Bundled fonts and MineLib
+benchmark data retain their separate licences and credits in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Use [CITATION.cff](CITATION.cff) when citing the software.
+
+## Ringkasan Bahasa Indonesia
+
+PitOpt membantu studi awal perencanaan tambang terbuka dari model blok hingga
+shell pit, urutan penambangan, dan geometri bench/ramp. Coba demo dengan data
+sintetis, atau ikuti instalasi di atas untuk memakai data sendiri. Periksa semua
+asumsi dan batasan; hasilnya memerlukan tinjauan teknis independen.

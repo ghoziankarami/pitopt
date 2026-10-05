@@ -470,7 +470,7 @@ scripts/                   make_synthetic_deposit.py, csv_surface_to_dxf.py   (d
                            bundle_source.py, start_ui.sh                       (tooling)
 tests/                     pytest: engine, onboarding, UI server, and independent consistency
                            checks of results.json / Excel / PDF / DXF / CSV against each other
-docs/                      PRD.md, claude_design_prompt.md, design/ (UI prototype from Claude Design)
+docs/                      installation, methodology, technical reference, release audit
 PitOpt.bat, PitOpt.command double-click launchers for the UI
 .github/workflows/ci.yml   ruff + pytest + example run
 outputs/, dist/            generated, git-ignored

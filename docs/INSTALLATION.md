@@ -1,8 +1,8 @@
 # Install PitOpt
 
-The fastest way to try PitOpt is the [live demo](https://pitopt.orebit.id). It uses synthetic data and is read-only. To run PitOpt on your own computer, use the quick-start steps below; setup installs everything automatically the first time you launch it.
+To explore the synthetic examples, use the [live demo](https://pitopt.orebit.id). It uses synthetic data and is read-only. To run PitOpt on your own computer, use the quick-start steps below; setup installs everything automatically the first time you launch it.
 
-Requirements: **Python 3.10 or newer** (check with `python3 --version`) and, except for the ZIP route, **Git**. The `python3` that ships with macOS is 3.9 and is too old: install a current one from [python.org](https://www.python.org/downloads/) or with `brew install python`.
+Requirements: **Python 3.10 or newer** (check with `python3 --version`) and, except for the ZIP route, **Git**. If your Python is older than 3.10, install a supported version from [python.org](https://www.python.org/downloads/) or with `brew install python`.
 
 ## macOS: download and click
 
@@ -12,22 +12,28 @@ Requirements: **Python 3.10 or newer** (check with `python3 --version`) and, exc
 
 If macOS blocks the launcher, Control-click `PitOpt.command`, choose **Open**, and confirm. Keep its Terminal window open while using PitOpt; press **Ctrl+C** to stop it.
 
-## macOS or Linux: one terminal command
+## macOS or Linux: terminal setup
 
-Install Python 3.10 or newer and Git, then paste this one line into Terminal:
+Install Python 3.10 or newer and Git, then run these commands in Terminal:
 
 ```bash
-git clone https://github.com/ghoziankarami/pitopt.git && cd pitopt && bash PitOpt.command
+git clone https://github.com/ghoziankarami/pitopt.git
+cd pitopt
+bash scripts/start_ui.sh
 ```
 
 The launcher creates a local `.venv`, installs PitOpt, and opens the browser. Keep the terminal open while using the app; press **Ctrl+C** to stop it.
 
-## Windows: one-time WSL setup, then one command
+## Windows: WSL setup
 
 PitOpt runs on Windows through WSL 2 with Ubuntu 24.04. Install it using [Microsoft's WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install), then open the Ubuntu app and paste:
 
 ```bash
-sudo apt update && sudo apt install -y git python3-venv && git clone https://github.com/ghoziankarami/pitopt.git && cd pitopt && bash scripts/start_ui.sh
+sudo apt update
+sudo apt install -y git python3-venv
+git clone https://github.com/ghoziankarami/pitopt.git
+cd pitopt
+bash scripts/start_ui.sh
 ```
 
 Open [http://127.0.0.1:8765](http://127.0.0.1:8765) in your browser. Keep the Ubuntu terminal open while using PitOpt; press **Ctrl+C** to stop it. Native Windows is not supported.
