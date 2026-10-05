@@ -22,6 +22,8 @@ Notable changes to PitOpt. The format follows
   modules faster than the server's connection backlog allowed.
 
 ### Changed
+- Clarify source installation, workflow, and numerical limitations.
+- Check human authorship metadata for new contributions.
 - README shortened to an introduction; the full reference moved to
   `docs/TECHNICAL.md`.
 
