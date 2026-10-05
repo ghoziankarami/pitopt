@@ -46,3 +46,10 @@ are accepted under the project's [MIT License](LICENSE).
 Do not expose a normal local UI server to the Internet. Public showcases must
 use demo mode, a separate synthetic-only root and a reverse proxy with limits
 (see [SECURITY.md](SECURITY.md)).
+
+## Commit authorship
+
+Use the identity of the person responsible for reviewing and submitting the
+change. Do not add development-tool authors, assistant signatures, or automatic
+tool co-author trailers. Preserve credit for human contributors and licensed
+third-party work. Pull requests check newly introduced commit metadata.
