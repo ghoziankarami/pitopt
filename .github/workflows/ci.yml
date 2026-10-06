@@ -23,3 +23,38 @@ jobs:
         run: |
           python -m pitopt run --config projects/example_tin/project.yaml
           pytest tests/test_results_consistency.py tests/test_outputs_consistency.py
+
+  installed-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Build wheel and source distribution
+        run: |
+          python -m pip install "build>=1.2,<2"
+          python -m build
+      - name: Install the wheel into a fresh environment
+        run: |
+          python -m venv "$RUNNER_TEMP/pitopt-wheel"
+          "$RUNNER_TEMP/pitopt-wheel/bin/python" -m pip install dist/*.whl
+      - name: Verify the installed package outside the checkout
+        run: |
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/pitopt-wheel/bin/python" -I "$GITHUB_WORKSPACE/scripts/check_installed_package.py" --source "$GITHUB_WORKSPACE"
+      - name: Record package checksums and the tested environment
+        run: |
+          printf '%s\n' "$GITHUB_SHA" > dist/SOURCE-REVISION.txt
+          "$RUNNER_TEMP/pitopt-wheel/bin/python" -VV > dist/TESTED-DEPENDENCIES.txt
+          "$RUNNER_TEMP/pitopt-wheel/bin/python" -m pip freeze >> dist/TESTED-DEPENDENCIES.txt
+          cd dist
+          sha256sum *.whl *.tar.gz SOURCE-REVISION.txt TESTED-DEPENDENCIES.txt > SHA256SUMS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pitopt-installed-package-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error
