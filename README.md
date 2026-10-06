@@ -13,6 +13,15 @@ processed on your computer.
 
 ![Results for the synthetic porphyry example](docs/images/screenshot-summary.png)
 
+[Install locally](docs/INSTALLATION.md) · [Orebit guides](https://orebit.id/docs.html) ·
+[Calculation methods](docs/TECHNICAL.md) · [Contribute](CONTRIBUTING.md)
+
+| Your goal | Route |
+| --- | --- |
+| Explore example results | [Read-only synthetic demo](https://pitopt.orebit.id/) |
+| Calculate with your own model | [Local source installation](docs/INSTALLATION.md) |
+| Inspect or change the implementation | This MIT-licensed repository and its tests |
+
 ## What it does
 
 | Step | Inputs and outputs |
