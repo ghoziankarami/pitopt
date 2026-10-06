@@ -6,7 +6,6 @@ test helpers are used; the installed application provides its dependencies.
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import sys
@@ -14,6 +13,7 @@ import tempfile
 import threading
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 
 def main():
