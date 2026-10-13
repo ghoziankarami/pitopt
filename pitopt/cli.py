@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import uuid
 from pathlib import Path
 
 from .config import ProjectConfig
@@ -10,6 +11,7 @@ from .core.economics import marginal_cutoff_grades, product_margin
 from .core.precedence import auto_bench_levels, effective_slope
 from .io.console import format_report, summarise_pit
 from .pipeline import run
+from .ui.staging import discard, promote, staging_dir
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
@@ -17,7 +19,17 @@ def _cmd_run(args: argparse.Namespace) -> int:
     if args.outdir:
         cfg.output.directory = str(Path(args.outdir).resolve())
 
-    result = run(cfg, verbose=not args.quiet)
+    final = Path(cfg.output.directory).resolve()
+    stage = staging_dir(final, uuid.uuid4().hex[:10])
+    directory = str(final)
+    try:
+        cfg.output.directory = str(stage)
+        result = run(cfg, verbose=not args.quiet)
+        promote(stage, final, cfg.name, directory)
+        result.outputs = {label: str(final / Path(path).name) for label, path in result.outputs.items()}
+    finally:
+        discard(stage)
+        cfg.output.directory = directory
 
     print()
     print(format_report(result.report, cfg.economics))

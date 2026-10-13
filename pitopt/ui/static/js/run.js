@@ -7,6 +7,7 @@ import { A } from "./actions.js";
 import { modal, closeModal } from "./modal.js";
 
 export function startRun(overrides = {}, suggestion = "") {
+  S.pendingRunContext = {project: S.project, scenario: S.scenario, selectionVersion: S.selectionVersion};
   const changed = Object.keys(overrides).length > 0;
   if (!changed) {
     return modal("Jalankan optimasi", `<p class="small muted" style="margin:0">Skenario ini akan dijalankan ulang dengan parameter tersimpan. Hasil sebelumnya ditimpa. Bisa memakan beberapa menit untuk model besar.</p>`,
@@ -22,15 +23,19 @@ export function startRun(overrides = {}, suggestion = "") {
 }
 
 A.confirmRun = async (el) => {
+  const owner = S.pendingRunContext;
+  if (!owner || owner.selectionVersion !== S.selectionVersion || owner.project !== S.project || owner.scenario !== S.scenario) {
+    closeModal(); toast("Proyek berubah. Periksa skenario dan konfirmasi run kembali."); return;
+  }
   const overrides = el.dataset.changed ? S.pendingOverrides : {};
   const save_as = el.dataset.changed ? document.getElementById("saveas").value.trim() : null;
   if (el.dataset.changed && !save_as) { document.getElementById("runerr").textContent = t("Nama skenario wajib diisi."); return; }
   try {
-    const res = await api("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: S.project, scenario: S.scenario, overrides, save_as }) });
+    const res = await api("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: owner.project, scenario: owner.scenario, overrides, save_as }) });
     closeModal();
-    S.job = { id: res.job, status: "running", scenario: res.scenario, log: [], stage: 0, stages: [], fraction: 0, next: 0, elapsed: 0 };
+    S.job = { id: res.job, project: owner.project, sourceScenario: owner.scenario, selectionVersion: owner.selectionVersion, status: "running", scenario: res.scenario, log: [], stage: 0, stages: [], fraction: 0, next: 0, elapsed: 0 };
     S.runTarget = res.scenario;
-    location.hash = "#/jalankan";
+    if (S.selectionVersion === owner.selectionVersion) location.hash = "#/jalankan";
     notify();
     pollJob();
   } catch (e) {
@@ -45,9 +50,12 @@ let polling = false;
 export async function pollJob() {
   if (polling) return;
   polling = true;
+  let restart = false;
   try {
     while (S.job && S.job.status === "running") {
-      const snap = await api(`/api/job?id=${S.job.id}&since=${S.job.next || 0}`);
+      const id = S.job.id;
+      const snap = await api(`/api/job?id=${id}&since=${S.job.next || 0}`);
+      if (!S.job || S.job.id !== id) { restart = S.job?.status === "running"; break; }
       const log = (S.job.log || []).concat(snap.log);
       S.job = { ...S.job, ...snap, log, scenario: S.job.scenario };
       notify();
@@ -57,9 +65,13 @@ export async function pollJob() {
     if (S.job && S.job.status === "done") {
       const { loadProjects2, select } = await import("./store.js");
       await loadProjects2();
-      await select(S.project, S.runTarget || S.scenario);
-      toast("Run selesai — hasil dimuat.");
+      if (S.project === S.job.project && S.scenario === (S.job.sourceScenario || S.job.scenario)
+          && (S.job.selectionVersion == null || S.selectionVersion === S.job.selectionVersion)) {
+        await select(S.job.project, S.job.scenario);
+        toast("Run selesai — hasil dimuat.");
+      } else toast("Run selesai di proyek asal. Pilih proyek tersebut untuk melihat hasil.");
     }
   } catch (e) { toast(e.message); }
   polling = false;
+  if (restart) pollJob();
 }

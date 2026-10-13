@@ -11,7 +11,7 @@ const fresh = () => ({
   eco: { grade_basis: "mass_percent", mining_recovery: 1, dilution: 0, royalty_rate: 0, mining_cost_per_tonne: "", processing_cost_per_tonne: 0 },
   products: [{ name: "", grade_col: "", price: "", price_unit: "t", plant_recovery: 1, processing_cost_per_tonne: 0, selling_cost_per_tonne: 0, density: "" }],
   rb: { target: { dx: "", dy: "", dz: "" }, parent: { dx: "", dy: "", dz: "" }, grades: [], strip: false, busy: false, err: null, result: null },
-  volume_col: "", slope_angle: 45, capacity: "", periods: "", discount_rate: 0.1, bench_height: "", bench_face_angle: 65, touched: new Set(),
+  crs: "", vertical_datum: "", volume_col: "", slope_angle: 45, capacity: "", periods: "", discount_rate: 0.1, bench_height: "", bench_face_angle: 65, touched: new Set(),
 });
 let w = fresh();
 const slug = () => (w.slug || w.title).trim().toLowerCase().replace(/[^0-9a-z_-]+/g, "_").replace(/^_+|_+$/g, "");
@@ -38,6 +38,7 @@ async function acceptBlock(res) {
   const info = res.inspect;
   if (info.kind === "surface" || info.kind === "surface_csv") { w.error = "Berkas ini terlihat seperti topografi, bukan model blok. Unggah di kotak Topografi."; return; }
   w.block = { file: res.file, info };
+  w.crs = ""; w.vertical_datum = "";
   w.map = { x_col: info.guess?.x || "", y_col: info.guess?.y || "", z_col: info.guess?.z || "", density_col: info.guess?.density || "", domain_col: info.guess?.domain || "", class_col: info.guess?.class || "", dx_col: info.guess?.dx || "", dy_col: info.guess?.dy || "", dz_col: info.guess?.dz || "" };
   w.size = { dx: info.spacing?.x || "", dy: info.spacing?.y || "", dz: info.spacing?.z || "" };
   w.bench_height = info.spacing?.z || "";
@@ -89,6 +90,7 @@ export function render() {
   const step2 = b ? `<div class="card" style="margin-top:16px"><div class="cardhead"><h2>2 · Kolom &amp; ukuran blok</h2><span class="lbl">${fmtInt(i.rows)} blok · ${cols.length} kolom</span></div>
     ${(w.warnings || []).map((x) => `<div class="banner warn small" style="margin-bottom:10px">${esc(x)}</div>`).join("")}
     <div class="pgrid">
+      ${fld("CRS (opsional)", `<input type="text" data-on="wset" data-path="crs" value="${esc(w.crs)}" placeholder="EPSG:32748">`)}${fld("Datum vertikal (opsional)", `<input type="text" data-on="wset" data-path="vertical_datum" value="${esc(w.vertical_datum)}">`)}
       ${fld("Easting (X)", sel("map.x_col", cols, w.map.x_col, "pilih…"))}${fld("Northing (Y)", sel("map.y_col", cols, w.map.y_col, "pilih…"))}${fld("Elevasi (Z)", sel("map.z_col", cols, w.map.z_col, "pilih…"), "Koordinat harus pusat blok.")}
       ${fld("Densitas", sel("map.density_col", numeric, w.map.density_col, "seragam (isi angka)"))}
       ${w.map.density_col ? "" : fld("Densitas seragam <span class='muted xs'>t/m³</span>", num("density", w.density))}
@@ -115,7 +117,7 @@ export function render() {
 
   const step3 = b ? `<div class="card" style="margin-top:16px"><div class="cardhead"><h2>3 · Ekonomi</h2><span class="lbl">semua angka Anda; yang tidak diubah ditandai asumsi</span></div>
     <div class="pgrid">
-      ${fld("Basis kadar", sel("eco.grade_basis", ["mass_percent", "volume_percent", "ppm", "g_per_t", "fraction"], w.eco.grade_basis, null))}
+      ${fld("Basis kadar", sel("eco.grade_basis", ["mass_percent", "volume_percent", "ppm", "gpt", "kgm3", "gm3"], w.eco.grade_basis, null))}
       ${fld("Mining recovery <span class='muted xs'>0–1</span>", num("eco.mining_recovery", w.eco.mining_recovery))}${fld("Dilusi <span class='muted xs'>0–1</span>", num("eco.dilution", w.eco.dilution))}${fld("Royalti <span class='muted xs'>0–1</span>", num("eco.royalty_rate", w.eco.royalty_rate))}
       ${fld("Biaya tambang <span class='muted xs'>USD/t</span>", num("eco.mining_cost_per_tonne", w.eco.mining_cost_per_tonne), "Wajib diisi.")}${fld("Biaya proses (umpan) <span class='muted xs'>USD/t</span>", num("eco.processing_cost_per_tonne", w.eco.processing_cost_per_tonne))}
     </div>
@@ -169,7 +171,7 @@ A.wDelProduct = (el) => { w.products.splice(+el.dataset.n, 1); notify(); };
 A.wCreate = async () => {
   w.busy = true; w.error = null; notify();
   const m = w.map, size = w.size;
-  const block_model = { volume_col: w.volume_col || null, file: w.block.file, x_col: m.x_col, y_col: m.y_col, z_col: m.z_col, domain_col: m.domain_col || null, class_col: m.class_col || null, density_col: m.density_col || null, density: w.density, include_classes: w.include_classes, ore_domains: w.ore_domains };
+  const block_model = { crs: w.crs || null, vertical_datum: w.vertical_datum || null, volume_col: w.volume_col || null, file: w.block.file, x_col: m.x_col, y_col: m.y_col, z_col: m.z_col, domain_col: m.domain_col || null, class_col: m.class_col || null, density_col: m.density_col || null, density: w.density, include_classes: w.include_classes, ore_domains: w.ore_domains };
   for (const k of ["dx", "dy", "dz"]) { if (m[`${k}_col`]) block_model[`${k}_col`] = m[`${k}_col`]; else block_model[k] = size[k]; }
   const spec = { title: w.title, slug: slug(), block_model, economics: { ...w.eco, products: w.products.map((p) => ({ ...p, density: p.density || undefined })) },
     surface: w.surface ? { file: w.surface.file, format: w.surface.format, ...(w.surface.map || {}) } : null,

@@ -14,7 +14,9 @@ a tonne of zircon.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import math
+from dataclasses import dataclass, field, fields, is_dataclass
+from numbers import Real
 from pathlib import Path
 
 import yaml
@@ -34,10 +36,14 @@ from .core.design_detail.config import (  # noqa: F401 — re-exported
 )
 
 # Divisor converting a reported grade into a fraction.
-GRADE_DIVISOR = {"mass_percent": 100.0, "volume_percent": 100.0, "ppm": 1_000_000.0, "gpt": 1_000_000.0}
+GRADE_DIVISOR = {"mass_percent": 100.0, "volume_percent": 100.0, "ppm": 1_000_000.0, "gpt": 1_000_000.0,
+                 "kgm3": 1_000.0, "gm3": 1_000_000.0}
 
 # Grade bases measured against block volume rather than block mass.
 VOLUME_BASES = {"volume_percent"}
+
+# Metal mass per in-situ cubic metre; these do not use rock or product density.
+VOLUMETRIC_MASS_BASES = {"kgm3", "gm3"}
 
 # Sales units per tonne of product, for products priced in ounces or pounds.
 UNITS_PER_TONNE = {"t": 1.0, "kg": 1_000.0, "g": 1_000_000.0, "oz": 32_150.7466, "lb": 2_204.62262}
@@ -51,6 +57,8 @@ class BlockModelConfig:
     z_col: str = "Z"
     grade_col: str | None = None     # convenience for a single-product model
     density_col: str | None = None
+    crs: str | None = None
+    vertical_datum: str | None = None
     dx_col: str | None = None
     dy_col: str | None = None
     dz_col: str | None = None
@@ -393,6 +401,20 @@ class ProjectConfig:
         return cfg
 
     def validate(self) -> None:
+        def finite(value, path):
+            if is_dataclass(value):
+                for item in fields(value):
+                    finite(getattr(value, item.name), f"{path}.{item.name}")
+            elif isinstance(value, dict):
+                for key, item in value.items():
+                    finite(item, f"{path}.{key}")
+            elif isinstance(value, (list, tuple)):
+                for index, item in enumerate(value):
+                    finite(item, f"{path}[{index}]")
+            elif isinstance(value, Real) and not math.isfinite(value):
+                raise ValueError(f"{path} must be finite")
+
+        finite(self, "project")
         e = self.economics
         if e.grade_basis not in GRADE_DIVISOR:
             raise ValueError(f"economics.grade_basis must be one of {list(GRADE_DIVISOR)}, got {e.grade_basis!r}")

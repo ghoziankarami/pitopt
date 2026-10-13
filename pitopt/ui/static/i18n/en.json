@@ -812,5 +812,17 @@
 "Mulai cepat · macOS / Linux (Python {#}+)": "Quick start · macOS / Linux (Python {#}+)",
 "demo publik ini hanya baca untuk fitur ini — clone dan jalankan sendiri: https://github.com/ghoziankarami/pitopt": "This feature is read-only in the public demo — install PitOpt locally to use it.",
 "endpoint dinonaktifkan di demo publik": "Not available in the public demo — install PitOpt locally to use it.",
-"Ekspor Excel, PDF, DXF dan viewer {#}D": "Export Excel, PDF, DXF and the {#}D viewer"
+"Ekspor Excel, PDF, DXF dan viewer {#}D": "Export Excel, PDF, DXF and the {#}D viewer",
+"Run lama belum memiliki fingerprint. Jalankan ulang untuk memverifikasi hasil.": "This older run has no input fingerprint. Run it again to verify the results.",
+"Input, parameter, atau engine berubah. Jalankan ulang sebelum menggunakan atau mengekspor hasil.": "Inputs, parameters or the engine changed. Run again before using or exporting results.",
+"Proyek berubah. Periksa skenario dan konfirmasi run kembali.": "The project changed. Check the scenario and confirm the run again.",
+"Run selesai di proyek asal. Pilih proyek tersebut untuk melihat hasil.": "The run finished in its original project. Select that project to view its results.",
+"DESAIN BELUM DIREKONSILIASI": "DESIGN NOT RECONCILED",
+"SUDUT DOMAIN": "DOMAIN SLOPES",
+"Jadwal dan NPV berbasis shell optimasi. Material desain bench belum dijadwalkan dan dihitung biayanya secara penuh.": "Schedule and NPV use the optimisation shell. Bench-design material has not been fully scheduled and costed.",
+"Desain bench seragam belum menerapkan batas sudut per domain. Review geoteknik diperlukan.": "Uniform benches do not enforce per-domain slope limits. Geotechnical review is required.",
+"CRS (opsional)": "CRS (optional)",
+"Datum vertikal (opsional)": "Vertical datum (optional)",
+"Run optimasi berubah selama Generate. Tekan Generate lagi untuk memakai hasil terbaru.": "The optimisation run changed during Generate. Generate again using the latest results.",
+"Run optimasi berubah sejak desain dibuat. Tekan Generate lagi sebelum memakai atau mengekspor desain.": "The optimisation run changed since this design was built. Generate again before using or exporting the design."
 }

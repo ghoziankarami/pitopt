@@ -108,3 +108,21 @@ python -m pip install -e ".[mcp]"  # optional MCP integration
 ```
 
 See [project requirements](PRD.md) for input formats and [security guidance](../SECURITY.md) before exposing a local instance to a network. The included tin and porphyry projects contain synthetic data.
+
+## Verified dependency profile and interrupted installation
+
+The source launcher checks the installed editable package and runtime imports
+in isolated Python mode. It repairs an interrupted `.venv` in place and keeps
+existing files; it no longer deletes the environment to retry installation.
+The bundled example is rerun when its input/parameter/engine fingerprint differs.
+
+For the dependency versions tested on Linux with Python 3.12:
+
+```bash
+PITOPT_CONSTRAINTS="$PWD/requirements-tested-py312.txt" NO_BROWSER=1 bash scripts/start_ui.sh
+```
+
+The profile includes development/browser tooling. Other Python versions and
+native desktop platforms need their own acceptance checks; these pins are not
+claimed as a universal platform certification. A saved run without a fingerprint
+remains readable as unverified; rerun it before exporting or using derived design.

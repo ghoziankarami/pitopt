@@ -45,6 +45,7 @@ VOLATILE = {
     "meta.config_path",
     "meta.surfaces",
     "meta.engine_version",
+    "meta.input_identity",
     "params.block_model.path",
     "params.surface.path",
     "params.output.directory",
