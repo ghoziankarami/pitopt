@@ -162,6 +162,16 @@ def schedule_production(
 
     Returns one row per period.
     """
+    if capacity_basis not in ("tonnes", "volume"):
+        raise ValueError("capacity_basis must be tonnes or volume")
+    if not np.isfinite(ore_capacity) or ore_capacity <= 0:
+        raise ValueError("Plant capacity must be finite and positive")
+    if total_capacity is not None and (not np.isfinite(total_capacity) or total_capacity <= 0):
+        raise ValueError("Total movement capacity must be finite and positive")
+    if not isinstance(max_periods, (int, np.integer)) or max_periods < 1:
+        raise ValueError("max_periods must be a positive integer")
+    if not np.isfinite(discount_rate) or not 0 <= discount_rate < 1:
+        raise ValueError("discount_rate must be in [0, 1)")
     feed_column = "ore_tonnes" if capacity_basis == "tonnes" else "volume"
     moved_column = "rock_tonnes" if capacity_basis == "tonnes" else "volume"
 
@@ -174,35 +184,30 @@ def schedule_production(
     moved = pit[moved_column].to_numpy()
     value = pit["value"].to_numpy()
 
-    # A block belongs to the period in which it starts: the cumulative
-    # feed (and material moved) before it, divided by the capacity. This is
-    # the sequential fill written as a cumulative sum, so a candidate
-    # sequence can be scheduled in milliseconds during pushback search.
-    started_feed = np.cumsum(feed) - feed
-    period_index = np.floor(started_feed / ore_capacity).astype(int) + 1
-    if total_capacity:
-        started_moved = np.cumsum(moved) - moved
-        period_index = np.maximum(period_index, np.floor(started_moved / total_capacity).astype(int) + 1)
-    period_index = np.minimum(period_index, max_periods)
+    # Whole blocks stay in mining order. A period closes before either hard
+    # capacity is exceeded; unused plant capacity cannot offset excess movement.
+    # Refuse an infeasible block or horizon rather than clipping into the last period.
+    if not (np.isfinite(feed).all() and np.isfinite(moved).all() and np.isfinite(value).all()):
+        raise ValueError("Schedule inputs must be finite")
+    if (feed < 0).any() or (moved < 0).any():
+        raise ValueError("Schedule quantities must be non-negative")
+    if (feed > ore_capacity).any() or (total_capacity is not None and (moved > total_capacity).any()):
+        raise ValueError("A whole block exceeds period capacity; reblock or increase capacity")
+    period_index = np.empty(len(pit), dtype=int)
+    period, used_feed, used_moved = 1, 0.0, 0.0
+    for i, (block_feed, block_moved) in enumerate(zip(feed, moved)):
+        if (used_feed + block_feed > ore_capacity
+                or (total_capacity is not None and used_moved + block_moved > total_capacity)):
+            period += 1
+            used_feed, used_moved = 0.0, 0.0
+        if period > max_periods:
+            raise ValueError("Required schedule exceeds max_periods; increase the horizon or capacity")
+        period_index[i] = period
+        used_feed += block_feed
+        used_moved += block_moved
 
-    # Within one bench of one stage the order of blocks is not a planning
-    # decision — the bench is worked as a whole — so where a period boundary
-    # cuts a bench, its cash is split in proportion to the feed on each side
-    # rather than by whichever blocks happen to sort first. Without this the
-    # NPV would depend on the row order of the input file.
-    stage = pit["pushback"].to_numpy() if "pushback" in pit.columns else pit["shell"].to_numpy() if "shell" in pit.columns else np.zeros(len(pit))
-    bench = pit["bench"].to_numpy()
-    new_run = np.ones(len(pit), dtype=bool)
-    new_run[1:] = (bench[1:] != bench[:-1]) | (stage[1:] != stage[:-1])
-    run = np.cumsum(new_run) - 1
-    run_value = np.bincount(run, weights=value)
-    run_feed = np.bincount(run, weights=feed)
-    run_moved = np.bincount(run, weights=moved)
-    share = np.where(run_feed[run] > 0, feed / np.where(run_feed[run] > 0, run_feed[run], 1.0),
-                     moved / np.where(run_moved[run] > 0, run_moved[run], 1.0))
-    cash = run_value[run] * share
-
-    scheduled = pit.assign(period=period_index, _is_ore=is_ore.astype(bool), _cash=cash)
+    # Cash follows the actual tagged blocks, including waste mining costs.
+    scheduled = pit.assign(period=period_index, _is_ore=is_ore.astype(bool), _cash=value)
     product_columns = [c for c in scheduled.columns if c.endswith("_tonnes") and c not in ("rock_tonnes", "ore_tonnes")]
 
     aggregation = {

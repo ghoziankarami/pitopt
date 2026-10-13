@@ -21,20 +21,26 @@ optimisation ones:
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from ..config import BlockModelConfig, EconomicsConfig
 
 
 def load_block_model(cfg: BlockModelConfig, econ: EconomicsConfig | None = None) -> pd.DataFrame:
-    raw = pd.read_csv(cfg.path)
+    # Category labels are literal identifiers, including numeric-looking codes.
+    labels = {column: str for column in (cfg.domain_col, cfg.class_col) if column}
+    raw = pd.read_csv(cfg.path, converters=labels)
+    if raw.empty:
+        raise ValueError("Block model contains no data rows.")
 
     grade_columns = [p.grade_col for p in econ.products] if econ else []
     if cfg.grade_col and cfg.grade_col not in grade_columns:
         grade_columns.append(cfg.grade_col)
 
     required = {"x": cfg.x_col, "y": cfg.y_col, "z": cfg.z_col}
-    missing = [src for src in list(required.values()) + grade_columns if src not in raw.columns]
+    mapped = [cfg.dx_col, cfg.dy_col, cfg.dz_col, cfg.density_col, cfg.volume_col, cfg.domain_col, cfg.class_col]
+    missing = [src for src in list(required.values()) + grade_columns + [c for c in mapped if c] if src not in raw.columns]
     if missing:
         raise ValueError(
             f"Column(s) {missing} not found in {cfg.path}. Available columns: {list(raw.columns)}"
@@ -42,7 +48,7 @@ def load_block_model(cfg: BlockModelConfig, econ: EconomicsConfig | None = None)
 
     df = pd.DataFrame({name: raw[src].astype(float) for name, src in required.items()})
     for column in grade_columns:
-        df[column] = raw[column].astype(float).fillna(0.0)
+        df[column] = raw[column].astype(float)
 
     for name, col, default in (
         ("dx", cfg.dx_col, cfg.dx),
@@ -83,10 +89,32 @@ def load_block_model(cfg: BlockModelConfig, econ: EconomicsConfig | None = None)
         processable &= df["domain"].isin(cfg.ore_domains)
     df["is_ore_domain"] = processable.to_numpy()
 
+    numeric = list(dict.fromkeys(["x", "y", "z", "dx", "dy", "dz", "density"] + grade_columns
+                                + (["volume"] if "volume" in df else [])))
+    for column in numeric:
+        bad = ~np.isfinite(df[column].to_numpy(dtype=float))
+        if bad.any():
+            rows = (np.flatnonzero(bad)[:10] + 1).tolist()
+            raise ValueError(f"{column}: missing or nonfinite values in data rows {rows}; correct the source, "
+                             "missing grades are not zero.")
+    for column in grade_columns:
+        if df[column].lt(0).any():
+            raise ValueError(f"{column}: negative grades (including missing-value sentinels) are not supported.")
+    if "volume" in df and df["volume"].le(0).any():
+        raise ValueError("Material volume must be positive; remove air cells explicitly before import.")
+    if df[["x", "y", "z"]].duplicated().any():
+        raise ValueError("Duplicate block centroids; reblock or correct the source before optimisation.")
+    if cfg.ore_domains and "domain" not in df:
+        raise ValueError("block_model.ore_domains requires a mapped domain_col.")
     invalid = df[["dx", "dy", "dz", "density"]].le(0).any(axis=1)
     if invalid.any():
         raise ValueError(f"{int(invalid.sum())} blocks have non-positive block size or density.")
 
+    row_field = "source_row"
+    while row_field in df.columns:
+        row_field = "_" + row_field
+    df[row_field] = np.arange(1, len(raw) + 1)
+    df.attrs["source_row_field"] = row_field
     return df.reset_index(drop=True)
 
 

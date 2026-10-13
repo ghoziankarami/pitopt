@@ -5,11 +5,12 @@ import { api, qs, clone } from "./util.js";
 export const S = {
   projects: [], project: null, scenario: null,
   demoMode: false, demoRepoUrl: "https://github.com/ghoziankarami/pitopt",
-  results: null, raw: null, cfg: null, error: null, loading: false,
+  results: null, freshness: null, selectionVersion: 0, raw: null, cfg: null, error: null, loading: false,
   view: "ringkasan", draft: {}, ve: +localStorage.getItem("pitopt-ve") || 5, theme: localStorage.getItem("pitopt-theme") || "light",
   job: null, compare: {}, pendingFinal: null,
 };
 const listeners = new Set();
+let selectionGeneration = 0;
 export const subscribe = (fn) => listeners.add(fn);
 export const notify = () => listeners.forEach((fn) => fn());
 
@@ -32,12 +33,33 @@ export async function loadProjects() {
 }
 
 export async function select(project, scenario) {
+  const generation = ++selectionGeneration;
+  S.selectionVersion = generation;
+  S.freshness = null;
   S.project = project; S.scenario = scenario; S.loading = true; S.error = null; S.draft = {}; S.pendingFinal = null;
+  S.cfg = null; S.raw = null; S.results = null; S.cfgError = null;
   localStorage.setItem("pitopt-scenario-v2", `${project}/${scenario}`);
   notify();
-  try { S.cfg = await api(`/api/config?${qs({ project, scenario })}`); S.raw = S.cfg.raw; } catch (e) { S.cfg = null; S.raw = null; S.cfgError = e.message; }
-  try { S.results = await api(`/api/results?${qs({ project, scenario })}`); }
-  catch (e) { S.results = null; S.error = e.message; }
+  try {
+    const cfg = await api(`/api/config?${qs({ project, scenario })}`);
+    if (generation !== selectionGeneration) return;
+    S.cfg = cfg; S.raw = cfg.raw;
+  } catch (e) {
+    if (generation !== selectionGeneration) return;
+    S.cfgError = e.message;
+  }
+  const meta = S.projects.find((p) => p.id === project)?.scenarios.find((s) => s.id === scenario);
+  if (meta?.freshness?.status === "stale") { S.freshness = meta.freshness; S.error = meta.freshness.reason; }
+  if (meta?.has_results !== false) {
+    try {
+      const results = await api(`/api/results?${qs({ project, scenario })}`);
+      if (generation !== selectionGeneration) return;
+      S.results = results; S.freshness = results.freshness;
+    } catch (e) {
+      if (generation !== selectionGeneration) return;
+      S.error = e.message;
+    }
+  }
   S.loading = false;
   notify();
 }

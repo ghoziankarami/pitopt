@@ -176,3 +176,19 @@ def test_a_new_generate_cancels_the_one_still_running(api):
     second = api("/api/design/run", {"project": PROJECT, "scenario": SCENARIO, "params": {**PARAMS, "ramp.width_m": 18.0}})["job"]
     assert wait_done(api, second)["status"] == "done"
     assert wait_done(api, first)["status"] in ("cancelled", "done")
+
+
+def test_replaced_optimisation_run_requires_regenerating_cached_design(api):
+    generate(api)
+    path = api.outputs / 'example_tin_results.json'
+    old = path.stat().st_mtime_ns
+    path.write_bytes(path.read_bytes())  # publication of another valid run with the same inputs
+    assert path.stat().st_mtime_ns != old
+    state = api('/api/design/state', {'project': PROJECT, 'scenario': SCENARIO, 'params': PARAMS})
+    assert state['session']['current'] is False
+    for route in ['/api/design/result?project=example_tin&scenario=project',
+                  '/api/design/plan?project=example_tin&scenario=project&rl=-7.5']:
+        assert 'Generate' in api(route, expect=409)['error']
+    assert 'Generate' in api('/api/design/export', {'project': PROJECT, 'scenario': SCENARIO}, expect=409)['error']
+    assert generate(api)['status'] == 'done'
+    assert api('/api/design/result?project=example_tin&scenario=project')['benches']

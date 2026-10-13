@@ -79,7 +79,7 @@ Serves a local single-user app on `127.0.0.1` (standard library HTTP server, no 
 
 **Consistency check:** `tests/test_results_consistency.py` recomputes, independently of the engine, block values from the README formula, pit/pushback/period totals from the exported block model, NPV from the period cash flows, the break-even from the sensitivity curve, and the plan-view rasters, for every run in `outputs/`. The UI shows only numbers taken from `<name>_results.json`.
 
-Cash flow per period is allocated proportionally across bench runs (so results do not depend on input row order); the block model's `period` column is a whole-block assignment of the same sequence. Totals agree; a single period can differ, and the size of that difference is reported on the Rencana Periode screen when it exceeds 2%.
+Cash flow per period is the sum of the blocks assigned to that period. Whole blocks obey the configured plant and material-movement capacities; a block exceeding one period's capacity or an infeasible fixed horizon is rejected. NPV discounts these actual period cash flows. Schedule and NPV describe the optimisation shell; reconciled bench-design material is not yet fully rescheduled or costed. See [acceptance and limitations](HANDOVER_CREDIBILITY_USABILITY.md).
 
 Screens: Ringkasan, Pit by Pit, Pit Final (choose a shell and re-run), Pushback, Rencana Periode, Desain, Sensitivitas, 3D & Penampang (Plotly, vertical exaggeration, section lines), Parameter (with provenance badges, live derived values, save/duplicate scenario), Jalankan (progress + log), Bandingkan, Ekspor (selective zip).
 

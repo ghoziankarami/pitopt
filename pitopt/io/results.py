@@ -50,6 +50,15 @@ def _num(v):
     return v
 
 
+def _json_safe(value):
+    """Retain unavailable diagnostics as null, including nested verification output."""
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return _num(value)
+
+
 def _rows(frame: pd.DataFrame | None) -> list:
     if frame is None:
         return []
@@ -160,8 +169,8 @@ def _derived(cfg: ProjectConfig) -> dict:
     show the engine's own numbers rather than its own approximation."""
     econ = cfg.economics
     bm = cfg.block_model
-    margins = {p.name: product_margin(econ, p) for p in econ.products}
-    cutoffs = marginal_cutoff_grades(econ, 1.0, bm.density)
+    margins = {p.name: _num(product_margin(econ, p)) for p in econ.products}
+    cutoffs = {key: _num(value) for key, value in marginal_cutoff_grades(econ, 1.0, bm.density).items()}
     levels = cfg.slope.max_bench_levels or auto_bench_levels(cfg.slope.overall_angle_deg, min(bm.dx, bm.dy), bm.dz)
     eff = effective_slope(cfg.slope.overall_angle_deg, min(bm.dx, bm.dy), bm.dz, levels)
     return {"margins": margins, "cutoffs": cutoffs, "template_levels": levels,
@@ -212,6 +221,12 @@ def _kpis(cfg: ProjectConfig, result, row: pd.Series) -> dict:
 def _warnings(cfg: ProjectConfig, result, kpis: dict, assumptions: list) -> list:
     """Banner items, three levels: blokir / peringatan / asumsi."""
     out = []
+    if result.design:
+        out.append({"level": "peringatan", "tag": "DESAIN BELUM DIREKONSILIASI", "link": "desain",
+                    "text": "Jadwal dan NPV berbasis shell optimasi. Material desain bench belum dijadwalkan dan dihitung biayanya secara penuh."})
+        if cfg.slope.domain_angles:
+            out.append({"level": "peringatan", "tag": "SUDUT DOMAIN", "link": "desain",
+                        "text": "Desain bench seragam belum menerapkan batas sudut per domain. Review geoteknik diperlukan."})
     if not result.closure["closed"]:
         out.append({"level": "peringatan", "tag": "PIT TIDAK TERTUTUP", "link": "plan",
                     "text": f"Pit menyentuh batas model di {result.closure['on_sides'] + result.closure['on_bottom']:,} blok "
@@ -472,6 +487,7 @@ def write_results(cfg: ProjectConfig, result, ctx: dict) -> tuple[str, dict]:
     doc = {
         "meta": {
             "schema_version": 1,
+            "input_identity": ctx.get("input_identity"),
             "project": ctx.get("project", cfg.name), "scenario": ctx.get("scenario", cfg.name), "name": cfg.name,
             "engine_version": ctx.get("engine_version"), "run_at": ctx.get("run_at"), "duration_s": ctx.get("duration_s"),
             "currency": CURRENCY, "shells": len(report), "blocks": int(len(blocks)),
@@ -481,7 +497,7 @@ def write_results(cfg: ProjectConfig, result, ctx: dict) -> tuple[str, dict]:
             "walls": verification.get("violations", (None, None, None))[0],
             "cone": verification.get("violations", (None, None, None))[1],
             "schedule": verification.get("violations", (None, None, None))[2],
-            "detail": verification,
+            "detail": _json_safe(verification),
         },
         "kpis": kpis,
         "warnings": warnings,
@@ -509,6 +525,19 @@ def write_results(cfg: ProjectConfig, result, ctx: dict) -> tuple[str, dict]:
         "provenance": cfg.provenance or {},
         "plan_view": _plan_rasters(blocks),
         "grids3d": grids3d,
+        "input_contract": {
+            "coordinate_convention": "centroid", "coordinate_unit": "m", "density_unit": "t/m3",
+            "crs": cfg.block_model.crs, "vertical_datum": cfg.block_model.vertical_datum,
+            "source_row_field": blocks.attrs.get("source_row_field", "source_row"),
+            "grade_units": {p.grade_col: cfg.economics.grade_basis for p in cfg.economics.products},
+            "classification": "user-supplied labels; no screening-to-resource-class conversion",
+        },
+        "readiness": {
+            "economic_basis": "optimisation_shell",
+            "design_economics_reconciled": False if result.design else None,
+            "domain_angles_applied_to_uniform_benches": False if cfg.slope.domain_angles and result.design else None,
+            "operational_design_certified": False,
+        },
         "inputs": _inputs(blocks),
         "qa": _qa(cfg, result, blocks, ctx.get("surface_faces"), reblock, _model_gap(blocks, xs, topo, ctx["face"])),
         "outputs": _files(out_dir, cfg.name),

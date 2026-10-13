@@ -22,6 +22,7 @@ import math
 import mimetypes
 import os
 import re
+import tempfile
 import threading
 import time
 import traceback
@@ -36,6 +37,7 @@ import yaml
 from scipy.ndimage import map_coordinates
 
 from ..core.cancel import Cancelled, CancelToken
+from ..provenance import StaleResults, freshness
 from .design_service import DesignService
 from .staging import discard, promote, staging_dir
 
@@ -96,7 +98,7 @@ class Job:
 
     def snapshot(self, since: int = 0) -> dict:
         return {
-            "id": self.id, "status": self.status, "stage": self.stage, "stages": [s for s, _ in STAGES],
+            "id": self.id, "project": self.project, "scenario": self.scenario, "status": self.status, "stage": self.stage, "stages": [s for s, _ in STAGES],
             "fraction": self.fraction, "log": self.log[since:], "next": len(self.log),
             "error": self.error, "elapsed": round((self.finished or time.time()) - self.started, 1),
         }
@@ -141,10 +143,12 @@ class App:
                 title = info.get("title", title)
                 order = info.get("order", order)
                 results = self.results_path(folder.name, yml.stem, raw, yml)
+                status = self.result_status(folder.name, yml.stem) if results and results.exists() else {"status": "missing", "reason": None}
                 scenarios.append({
                     "id": yml.stem, "name": info.get("name", yml.stem),
                     "label": info.get("scenario", yml.stem),
-                    "has_results": bool(results and results.exists()),
+                    "has_results": bool(results and results.exists() and status["status"] != "stale"),
+                    "freshness": status,
                     "run_at": self._run_at(results),
                 })
             if scenarios:
@@ -174,6 +178,29 @@ class App:
         if not re.fullmatch(r"[A-Za-z0-9_-]+", str(name)):
             raise ValueError("project.name must be a simple filename")
         return self._inside(out / f"{name}_results.json")
+
+    def result_status(self, project: str, scenario: str) -> dict:
+        path = self.results_path(project, scenario)
+        if not path or not path.exists():
+            return {"status": "missing", "reason": None}
+        try:
+            doc = json.loads(path.read_text())
+            if not doc.get("meta", {}).get("input_identity"):
+                return {"status": "unverified", "reason": "Run lama belum memiliki fingerprint. Jalankan ulang untuk memverifikasi hasil."}
+            return freshness(doc, self.config_for(project, scenario))
+        except (OSError, ValueError, TypeError) as exc:
+            return {"status": "stale", "reason": f"Hasil/input tidak dapat diverifikasi: {exc}"}
+
+    def read_results(self, project: str, scenario: str, require_current: bool = False) -> dict:
+        path = self.results_path(project, scenario)
+        if not path or not path.exists():
+            raise FileNotFoundError("belum ada hasil untuk skenario ini")
+        status = self.result_status(project, scenario)
+        if status["status"] == "stale" or (require_current and status["status"] != "current"):
+            raise StaleResults(status["reason"])
+        doc = json.loads(path.read_text())
+        doc["freshness"] = status
+        return doc
 
     def output_dir(self, project: str, scenario: str) -> tuple[Path, str]:
         raw, yml = self.load_raw(project, scenario)
@@ -216,11 +243,16 @@ class App:
         tmp = tmp_parent / f".pitopt-resolve-{uuid.uuid4().hex}.yaml"
         try:
             tmp.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True))
-            return ProjectConfig.from_yaml(str(tmp))
+            cfg = ProjectConfig.from_yaml(str(tmp))
+            for source in (cfg.block_model.path, cfg.surface.path):
+                if source:
+                    self._inside(Path(source))
+            return cfg
         finally:
             tmp.unlink(missing_ok=True)
 
     def save_scenario(self, project: str, scenario: str, overrides: dict, save_as: str) -> str:
+        self._guard_idle(project)
         raw, _yml = self.load_raw(project, scenario)
         slug = re.sub(r"[^0-9A-Za-z_-]+", "_", save_as).strip("_")
         if not slug:
@@ -233,7 +265,17 @@ class App:
         out = raw.setdefault("output", {})
         out["directory"] = str(Path(out.get("directory", "outputs")).parent / slug)
         target = self._inside(self.projects_dir / project / f"{slug}.yaml")
-        target.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True))
+        if target.exists():
+            raise ValueError("nama skenario sudah ada; pilih nama baru agar skenario lama tetap utuh")
+        temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
+        try:
+            temporary.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True))
+            from ..config import ProjectConfig
+
+            ProjectConfig.from_yaml(str(temporary))
+            os.link(temporary, target)  # exclusive atomic publication: never replace a concurrent save
+        finally:
+            temporary.unlink(missing_ok=True)
         return slug
 
     # ── running ──
@@ -271,6 +313,9 @@ class App:
             raise ValueError("parameter yang diubah butuh nama skenario (save_as) agar hasil asli tetap ada")
 
         cfg = ProjectConfig.from_yaml(str(yml))       # validates; raises ValueError with a readable message
+        for source in (cfg.block_model.path, cfg.surface.path):
+            if source:
+                self._inside(Path(source))
         with self.lock:
             if self.running and self.running.status == "running":
                 raise RuntimeError("an optimisation is already running")
@@ -288,6 +333,9 @@ class App:
             try:
                 cfg.output.directory = str(staging)              # the run writes here; the previous result is untouched
                 run(cfg, verbose=False, log_fn=job.add, context={"project": project, "scenario": target_id}, cancel=job.cancel)
+                stored = json.loads((staging / f"{name}_results.json").read_text())
+                if freshness(stored, self.config_for(project, target_id))["status"] != "current":
+                    raise StaleResults("Input atau konfigurasi berubah selama run; hasil sebelumnya tetap dipertahankan.")
                 promote(staging, out_dir, name, real_directory)
                 job.status = "done"
             except Cancelled:
@@ -390,6 +438,7 @@ class App:
     def block_table(self, project: str, scenario: str):
         import pandas as pd
 
+        self.read_results(project, scenario, require_current=True)
         out_dir, name = self.output_dir(project, scenario)
         csv = out_dir / f"{name}_blocks.csv"
         if not csv.exists():
@@ -474,6 +523,7 @@ class App:
 
     # ── sections ──
     def section(self, project: str, scenario: str, p1: tuple[float, float], p2: tuple[float, float], layers: list[str]) -> dict:
+        self.read_results(project, scenario, require_current=True)
         out_dir, name = self.output_dir(project, scenario)
         data = np.load(out_dir / f"{name}_surfaces.npz")
         xs, ys = data["xs"].astype(float), data["ys"].astype(float)
@@ -509,6 +559,7 @@ class App:
     # ── package ──
     def package(self, project: str, scenario: str, only: list[str] | None = None) -> bytes:
         out_dir, name = self.output_dir(project, scenario)
+        self.read_results(project, scenario, require_current=True)
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
             for f in sorted(out_dir.glob(f"{name}_*")):
@@ -602,14 +653,25 @@ def make_handler(app: App):
             folder.mkdir(parents=True, exist_ok=True)
             target = folder / name
             left = length
-            with open(target, "wb") as f:
-                while left:
-                    chunk = self.rfile.read(min(1 << 20, left))
-                    if not chunk:
-                        raise ValueError("unggahan terputus")
-                    f.write(chunk)
-                    left -= len(chunk)
-            return {"file": target.name, "bytes": target.stat().st_size, "inspect": onboard.inspect_file(target)}
+            # Validate a complete staged upload before replacing a valid source.
+            # Keep the suffix so DXF/CSV inspection uses the correct reader.
+            with tempfile.NamedTemporaryFile(dir=folder, suffix=target.suffix, delete=False) as f:
+                staged = Path(f.name)
+                try:
+                    while left:
+                        chunk = self.rfile.read(min(1 << 20, left))
+                        if not chunk:
+                            raise ValueError("unggahan terputus")
+                        f.write(chunk)
+                        left -= len(chunk)
+                    f.flush()
+                    os.fsync(f.fileno())
+                    info = onboard.inspect_file(staged)
+                    json.dumps(info, allow_nan=False)  # reject unusable inspection metadata before replacement
+                    staged.replace(target)
+                finally:
+                    staged.unlink(missing_ok=True)
+            return {"file": target.name, "bytes": target.stat().st_size, "inspect": info}
 
         def _design_get(self, route: str, q: dict):
             d, project, scenario = app.design, q.get("project", ""), q.get("scenario", "")
@@ -682,7 +744,7 @@ def make_handler(app: App):
                     path = app.results_path(q["project"], q["scenario"])
                     if not path or not path.exists():
                         return self._json({"error": "belum ada hasil untuk skenario ini"}, 404)
-                    return self._file(path)
+                    return self._json(app.read_results(q["project"], q["scenario"]))
                 if url.path == "/api/config":
                     raw, _ = app.load_raw(q["project"], q["scenario"])
                     return self._json({"raw": raw, **app.resolved(q["project"], q["scenario"])})
@@ -725,6 +787,7 @@ def make_handler(app: App):
                     log = out_dir / f"{name}_run.log"
                     return self._json({"log": log.read_text().splitlines() if log.exists() else []})
                 if url.path == "/api/download":
+                    app.read_results(q["project"], q["scenario"], require_current=True)
                     out_dir, name = app.output_dir(q["project"], q["scenario"])
                     target = app._inside(out_dir / Path(q["file"]).name)
                     return self._file(target, download=target.name)
@@ -749,6 +812,8 @@ def make_handler(app: App):
                         return self._json({"error": "dilarang"}, 403)
                     return self._file(target)
                 return self._json({"error": "tidak ditemukan"}, 404)
+            except StaleResults as exc:
+                return self._json({"error": str(exc), "status": "stale"}, 409)
             except (KeyError, ValueError) as exc:
                 return self._json({"error": f"permintaan tidak valid: {exc}"}, 400)
             except FileNotFoundError as exc:
@@ -815,6 +880,8 @@ def make_handler(app: App):
                         tmp.unlink(missing_ok=True)
                     return self._json({"ok": True})
                 return self._json({"error": "tidak ditemukan"}, 404)
+            except StaleResults as exc:
+                return self._json({"error": str(exc)}, 409)
             except RuntimeError as exc:
                 return self._json({"error": str(exc)}, 409)
             except (KeyError, ValueError, TypeError) as exc:

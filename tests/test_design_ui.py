@@ -44,7 +44,15 @@ def site(tmp_path_factory):
     raw["output"] = {"directory": "outputs"}
     raw.setdefault("design", {})["detail"] = DETAIL
     (project / "project.yaml").write_text(yaml.safe_dump(raw))
-    shutil.copytree(src, project / "outputs")
+    # DETAIL changes calculation parameters; calculate this fixture rather than
+    # assigning provenance from a different run to its copied result.
+    from pitopt.config import ProjectConfig
+    from pitopt.pipeline import run
+
+    cfg = ProjectConfig.from_yaml(str(project / "project.yaml"))
+    for option in ("write_excel", "write_pdf", "write_3d", "write_plot", "write_dxf", "write_design_detail"):
+        setattr(cfg.output, option, False)
+    run(cfg, verbose=False, context={"project": "example_tin", "scenario": "project"})
     empty = root / "projects" / "empty"
     empty.mkdir()
     (empty / "project.yaml").write_text("project: {name: empty, title: Kosong, order: 9}\nblock_model: {path: x.csv}\noutput: {directory: outputs}\n")
@@ -59,8 +67,9 @@ def demo_site(tmp_path_factory):
     src = ROOT / ".pytest_runs/example_tin"
     if not src.exists():
         pytest.skip("no generated example run")
-    if not (ROOT / "outputs/porphyry").is_dir():
-        pytest.skip("generated Porphyry demo outputs are provisioned separately")
+    if not all((ROOT / "outputs/porphyry" / file).is_file()
+               for file in ("porphyry_results.json", "porphyry_surfaces.npz")):
+        pytest.skip("complete Porphyry demo outputs are provisioned separately")
     root = tmp_path_factory.mktemp("interactive_demo")
     project = root / "projects" / "example_tin"
     shutil.copytree(ROOT / "projects/example_tin", project, ignore=shutil.ignore_patterns("outputs"))
@@ -68,7 +77,15 @@ def demo_site(tmp_path_factory):
     raw["output"] = {"directory": "outputs"}
     raw.setdefault("design", {})["detail"] = DETAIL
     (project / "project.yaml").write_text(yaml.safe_dump(raw))
-    shutil.copytree(src, project / "outputs")
+    # DETAIL changes calculation parameters; calculate this fixture rather than
+    # assigning provenance from a different run to its copied result.
+    from pitopt.config import ProjectConfig
+    from pitopt.pipeline import run
+
+    cfg = ProjectConfig.from_yaml(str(project / "project.yaml"))
+    for option in ("write_excel", "write_pdf", "write_3d", "write_plot", "write_dxf", "write_design_detail"):
+        setattr(cfg.output, option, False)
+    run(cfg, verbose=False, context={"project": "example_tin", "scenario": "project"})
     porphyry = root / "projects" / "porphyry_synthetic"
     shutil.copytree(ROOT / "projects/porphyry_synthetic", porphyry)
     shutil.copytree(ROOT / "outputs/porphyry", root / "outputs" / "porphyry")
@@ -291,6 +308,8 @@ def test_a_broken_road_is_named_on_the_ramp_screen_and_blocks_the_check(page):
     page.evaluate("location.reload()")
     page.wait_for_selector("nav.side")
     go(page, "d-ramp")
+    # Reload restores design results asynchronously; await the actual finding.
+    page.wait_for_selector("main :text('Ramp putus di bench 3')")
     text = page.inner_text("main")
     assert "Ramp putus di bench 3" in text and "splits" in text
     assert page.locator("main span.num", has_text="3").count() >= 1
