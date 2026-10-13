@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--outdir', type=Path, required=True)
     args = parser.parse_args()
     root = args.runtime_root.resolve()
+    assert not any(p.is_symlink() for p in root.rglob('*')), 'Do not publish runtime source symlinks'
     app = App(root)
     projects = ['example_tin', 'porphyry_synthetic']
     assert sorted(p['id'] for p in app.list_projects()) == sorted(projects), 'Only named synthetic demo projects may be published'
