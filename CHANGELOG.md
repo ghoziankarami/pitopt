@@ -7,12 +7,19 @@ Notable changes to PitOpt. The format follows
 ## [Unreleased]
 
 ### Added
+- Input/result provenance, explicit shell-versus-bench readiness warnings, tested Python 3.12 dependencies and reproducible acceptance handover.
 - Public demo: every action that needs a local install opens a "Use your own
   data" page with install steps instead of an error message.
 - Phone layout for the web UI.
 - Community files: code of conduct, issue and pull-request templates, citation file.
 
 ### Fixed
+- Reject invalid/missing block values; preserve literal categories and source-row identities.
+- Correct volumetric metal units and enforce whole-block scheduling capacity and cash timing.
+- Detect stale results after input/parameter/engine changes and require reruns for derived exports.
+- Bind asynchronous jobs, confirmations and design responses to their project/scenario context.
+- Save scenarios and promote run outputs atomically; retain previous files after failures.
+- Invalidate cached designs when optimisation results change; repair interrupted installations in place.
 - The launcher now finds Python 3.10+ and explains clearly when only an older
   Python is installed, instead of failing inside pip.
 - An interrupted first install no longer leaves a broken `.venv` behind.

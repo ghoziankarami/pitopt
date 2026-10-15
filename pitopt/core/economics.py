@@ -24,7 +24,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from ..config import GRADE_DIVISOR, VOLUME_BASES, EconomicsConfig, ProductConfig
+from ..config import GRADE_DIVISOR, VOLUME_BASES, VOLUMETRIC_MASS_BASES, EconomicsConfig, ProductConfig
 
 ORE, WASTE = 1, 0
 
@@ -34,7 +34,9 @@ def _recovered_tonnes(
 ) -> np.ndarray:
     """Saleable tonnes of one product, after mining and plant recovery."""
     grade_fraction = df[product.grade_col].to_numpy() / GRADE_DIVISOR[econ.grade_basis]
-    if econ.grade_basis in VOLUME_BASES:
+    if econ.grade_basis in VOLUMETRIC_MASS_BASES:
+        in_situ = recovered_volume * grade_fraction
+    elif econ.grade_basis in VOLUME_BASES:
         in_situ = recovered_volume * grade_fraction * product.density
     else:
         in_situ = recovered_mass * grade_fraction
@@ -91,7 +93,7 @@ def marginal_cutoff_grades(econ: EconomicsConfig, revenue_factor: float = 1.0, r
         payable_per_unit = product.plant_recovery * margin
         if econ.grade_basis in VOLUME_BASES:
             payable_per_unit *= product.density
-        else:
+        elif econ.grade_basis not in VOLUMETRIC_MASS_BASES:
             payable_per_unit *= rock_density
 
         cutoffs[product.name] = (feed_cost / payable_per_unit) * GRADE_DIVISOR[econ.grade_basis]

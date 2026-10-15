@@ -261,6 +261,8 @@ def run_notes(cfg: ProjectConfig, result: PitResult) -> dict:
         "blocks_on_bottom_bench": result.closure["on_bottom"],
         "blocks_on_lateral_limit": result.closure["on_sides"],
         "shell_nesting_violations": result.nesting_violations,
+        "economic_basis": "optimisation_shell",
+        "design_economics_reconciled": False if result.design else None,
     }
     if result.schedule is not None:
         notes.update({f"schedule_{k}": v for k, v in schedule_summary(result.schedule).items()})
@@ -269,6 +271,10 @@ def run_notes(cfg: ProjectConfig, result: PitResult) -> dict:
 
 def collect_warnings(cfg: ProjectConfig, result: PitResult) -> list:
     warnings = []
+    if result.design:
+        warnings.append("Schedule and NPV describe the optimisation shell. Reconciled bench-design material is not rescheduled or fully costed; this is not an operational design sign-off.")
+        if cfg.slope.domain_angles:
+            warnings.append("Uniform bench geometry does not enforce the configured per-domain slope angles. Geotechnical domain acceptance is required.")
     if not result.closure["closed"]:
         warnings.append(
             f"Pit is not closed inside the block model: {result.closure['on_bottom']:,} blocks sit on the "
@@ -326,7 +332,10 @@ def run(cfg: ProjectConfig, verbose: bool = True, log_fn: Callable[[str], None] 
                 raising Cancelled. Every stage reports progress, so that is at most
                 one stage away
     """
+    from .provenance import fingerprint
+
     started = time.time()
+    input_identity = fingerprint(cfg)
 
     def log(message: str) -> None:
         if cancel is not None:
@@ -841,6 +850,9 @@ def run(cfg: ProjectConfig, verbose: bool = True, log_fn: Callable[[str], None] 
                 "engine_version": __import__("pitopt").__version__,
                 **(context or {}),
             }
+            if fingerprint(cfg) != input_identity:
+                raise ValueError("Input berubah selama kalkulasi; hasil tidak dapat dipromosikan. Jalankan ulang.")
+            ctx["input_identity"] = input_identity
             results_path, _doc = write_results(cfg, result, ctx)
             outputs["results_json"] = results_path
             log(f"Results for the UI -> {Path(results_path).name}")

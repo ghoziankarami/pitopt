@@ -42,6 +42,7 @@ from ..core.design_detail.footprint import level_footprint
 from ..core.design_detail.parameters import berm_width, inter_ramp_angle_deg, resolve_sectors
 from ..core.design_detail.ramp import size_ramp, wall_tables
 from ..io import design_export
+from ..provenance import StaleResults
 
 DEC = 2                       # coordinates go to the UI at centimetre resolution
 
@@ -113,7 +114,7 @@ class DesignService:
         results_path = self.app.results_path(project, scenario)
         if not results_path or not results_path.exists():
             return {"has_results": False}
-        results = json.loads(results_path.read_text())
+        results = self.app.read_results(project, scenario)
         out: dict = {"has_results": True, "meta": results["meta"], "final_pit": results["final_pit"],
                      "verification": results["verification"], "qa": results["qa"]["checks"], "assumptions": results["assumptions"]}
         out["blocks_ready"] = (self.app.output_dir(project, scenario)[0] / f"{results['meta']['name']}_blocks.csv").exists()
@@ -168,7 +169,7 @@ class DesignService:
 
     def block_card(self, project: str, scenario: str) -> dict:
         meta = self.app.block_meta(project, scenario)
-        results = json.loads(self.app.results_path(project, scenario).read_text())
+        results = self.app.read_results(project, scenario)
         bm = results["params"]["block_model"]
         return {**meta, "file": Path(bm["path"]).name, "extent": self._extent(project, scenario)}
 
@@ -236,6 +237,9 @@ class DesignService:
             raster = self._raster_tier(job.project, job.scenario)
             detail = build_design(blocks, in_pit, cfg, raster=raster, progress=progress, cancel=job.cancel)
             job.cancel.check()                                            # replace the design on screen only if not cancelled
+            self.app.read_results(job.project, job.scenario, require_current=True)
+            if self._key(job.project, job.scenario, cfg) != key:
+                raise StaleResults("Run optimasi berubah selama Generate. Tekan Generate lagi untuk memakai hasil terbaru.")
             self.sessions[(job.project, job.scenario)] = Session(detail, blocks, in_pit, cfg, key, time.time() - started)
             job.status, job.fraction = "done", 1.0
         except Cancelled:
@@ -254,9 +258,12 @@ class DesignService:
 
     # ── reading the finished design ──
     def session(self, project: str, scenario: str) -> Session:
+        self.app.read_results(project, scenario, require_current=True)
         session = self.sessions.get((project, scenario))
         if session is None:
             raise FileNotFoundError("belum ada desain untuk skenario ini; tekan Generate")
+        if session.key != self._key(project, scenario, session.cfg):
+            raise StaleResults("Run optimasi berubah sejak desain dibuat. Tekan Generate lagi sebelum memakai atau mengekspor desain.")
         return session
 
     def result(self, project: str, scenario: str) -> dict:
@@ -302,7 +309,10 @@ class DesignService:
         """One bench of the block model as the plan view draws it: every block on that level with its class and
         whether the shell and the design contain it, plus the shell and design outlines at that elevation.
         Works before any design exists (the Source screen shows the shell alone); the design fields are then empty."""
+        self.app.read_results(project, scenario, require_current=True)
         session = self.sessions.get((project, scenario))
+        if session is not None:
+            session = self.session(project, scenario)
         blocks = session.blocks if session else self.app.block_table(project, scenario)
         in_pit = session.in_pit if session else blocks["in_pit"].to_numpy().astype(bool)
         cfg = session.cfg if session else self.config(project, scenario)

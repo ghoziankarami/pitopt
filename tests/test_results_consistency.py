@@ -85,8 +85,7 @@ def test_kpis_match_block_model(run):
 def test_schedule_is_the_block_model(run):
     """Period tonnes equal the sum over blocks tagged with that period, NPV is the
     discounted sum of the period cash flows, and total cash equals the pit value.
-    Per-period cash may differ from the tagged block sum (bench runs are split
-    proportionally); the run must report exactly that difference."""
+    Per-period cash must follow the actual tagged blocks, including waste costs."""
     r, b = run
     if not r["schedule"]["plan"]:
         pytest.skip("no schedule in this run")
@@ -100,6 +99,7 @@ def test_schedule_is_the_block_model(run):
         assert close(sel.loc[sel["destination"] == 1, "ore_tonnes"].sum(), row["ore_tonnes"])
         assert close(sel["value"].sum(), rec[row["period"]]["tagged"], rel=1e-6, abs_=1.0)
         assert close(rec[row["period"]]["plan"], row["cash_flow"], rel=1e-9, abs_=1e-3)
+        assert close(sel["value"].sum(), row["cash_flow"], rel=1e-9, abs_=1e-3)
         npv += row["cash_flow"] / (1 + rate) ** (row["period"] * years)
         assert close(npv, row["npv"], rel=1e-6, abs_=1.0), f"period {row['period']}"
     assert close(npv, r["kpis"]["npv_plan"], rel=1e-6, abs_=1.0)
@@ -188,8 +188,7 @@ def test_every_output_file_exists(run):
 
 
 def test_schedule_respects_plant_capacity_and_fills_it(run):
-    """Whole blocks are scheduled, so a period meets capacity to within one block: never more than one block over,
-    and every period but the last runs at capacity (the schedule only under-fills when the pit is exhausted)."""
+    """Plant throughput is a hard limit; indivisible blocks can leave unused capacity."""
     r, b = run
     one_block = float(b.loc[b["destination"] == 1, "ore_tonnes"].max())
     plan = r["schedule"]["plan"]
@@ -200,8 +199,8 @@ def test_schedule_respects_plant_capacity_and_fills_it(run):
     if not basis_tonnes:
         pytest.skip("volume basis")
     for row in plan:
-        assert row["ore_tonnes"] <= cap + one_block, f"period {row['period']} exceeds capacity by more than one block"
-    for row in plan[:-1]:
+        assert row["ore_tonnes"] <= cap + 1e-6, f"period {row['period']} exceeds plant capacity"
+    for row in plan[:-1] if not r["params"]["schedule"].get("total_capacity") else []:
         assert row["ore_tonnes"] >= cap - one_block, f"period {row['period']} under-fills the plant before the pit is exhausted"
 
 

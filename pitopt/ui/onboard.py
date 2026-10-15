@@ -241,6 +241,9 @@ def build_project(spec: dict) -> tuple[str, dict]:
         block["density_col"] = bm["density_col"]
     else:
         block["density"] = float(bm.get("density") or 0) or _fail("Densitas (t/m³) wajib diisi bila tidak ada kolom densitas")
+    for k in ("crs", "vertical_datum"):
+        if bm.get(k):
+            block[k] = str(bm[k]).strip()
     for k in ("domain_col", "class_col"):
         if bm.get(k):
             block[k] = bm[k]

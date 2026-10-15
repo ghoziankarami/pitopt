@@ -9,32 +9,44 @@ PORT="${1:-8765}"
 # The stock python3 on macOS is 3.9, which pip rejects with a cryptic message; find 3.10+ first.
 find_python() {
   for py in python3.13 python3.12 python3.11 python3.10 python3; do
-    if command -v "$py" >/dev/null 2>&1 && "$py" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; then
+    if command -v "$py" >/dev/null 2>&1 && "$py" -c 'import sys, ensurepip, venv; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; then
       echo "$py"; return 0
     fi
   done
   return 1
 }
 
-# Checked by import, not by the file existing: an interrupted install leaves a .venv without pitopt.
-if ! .venv/bin/python -c "import pitopt" >/dev/null 2>&1; then
+# Validate the installed editable package and real runtime imports, outside cwd lookup.
+# Repair dependencies in place so interrupted setup does not delete an existing environment.
+if ! .venv/bin/python -I -c 'import sys, pathlib, importlib.metadata, pitopt; import numpy, pandas, scipy, networkx, yaml, ezdxf, shapely, matplotlib, xlsxwriter, openpyxl, reportlab, plotly, PIL; assert sys.version_info >= (3,10); importlib.metadata.version("pitopt"); assert pathlib.Path(pitopt.__file__).resolve().parent == pathlib.Path(sys.argv[1]).resolve()/"pitopt"' "$PWD" >/dev/null 2>&1; then
   if ! PY="$(find_python)"; then
-    echo "PitOpt needs Python 3.10 or newer (found: $(python3 --version 2>&1 || echo none))."
-    echo "Install it from https://www.python.org/downloads/ (macOS: or 'brew install python'), then run this again."
+    echo "PitOpt needs Python 3.10 or newer. Install a supported Python and run this again."
     exit 1
   fi
-  echo "First-time setup with $("$PY" --version): creating .venv and installing PitOpt. This takes a few minutes..."
-  rm -rf .venv
+  echo "Preparing PitOpt with $("$PY" --version): creating or repairing .venv and installing dependencies..."
   "$PY" -m venv .venv
   .venv/bin/python -m pip install --quiet --upgrade pip
-  .venv/bin/python -m pip install --default-timeout=300 -e .
+  INSTALL_ARGS=(--default-timeout=300 -e .)
+  if [ -n "${PITOPT_CONSTRAINTS:-}" ]; then
+    [ -f "$PITOPT_CONSTRAINTS" ] || { echo "Constraint file not found: $PITOPT_CONSTRAINTS"; exit 1; }
+    INSTALL_ARGS+=(--constraint "$PITOPT_CONSTRAINTS")
+  fi
+  .venv/bin/python -m pip install "${INSTALL_ARGS[@]}"
 fi
 
 # Sample data and a first run, so the app does not open on an empty screen.
 if [ ! -f projects/porphyry_synthetic/data/porphyry_blocks.csv ]; then
   .venv/bin/python scripts/make_synthetic_deposit.py --nx 60 --ny 60 --nz 28 >/dev/null
 fi
-if [ ! -f outputs/example_tin/example_tin_results.json ]; then
+if ! .venv/bin/python - <<'READY'
+import json
+from pathlib import Path
+from pitopt.config import ProjectConfig
+from pitopt.provenance import freshness
+path=Path('outputs/example_tin/example_tin_results.json')
+raise SystemExit(0 if path.exists() and freshness(json.loads(path.read_text()), ProjectConfig.from_yaml('projects/example_tin/project.yaml'))['status']=='current' else 1)
+READY
+then
   echo "Running the synthetic tin example (about 20 s)..."
   .venv/bin/python -m pitopt run --config projects/example_tin/project.yaml >/dev/null
 fi
