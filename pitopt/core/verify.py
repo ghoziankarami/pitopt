@@ -174,14 +174,20 @@ def design_check(face: np.ndarray, cell: float, face_angle_deg: float, overall_a
 
     def steepest(offset_cells: int) -> float:
         worst = 0.0
+        measured = False
         for di, dj in ((offset_cells, 0), (0, offset_cells), (offset_cells, offset_cells), (offset_cells, -offset_cells)):
+            # There is no comparison at this span when either endpoint lies
+            # outside the grid. Keep the measurable axis on thin grids.
+            if abs(di) >= face.shape[0] or abs(dj) >= face.shape[1]:
+                continue
             a = face[max(0, -di): face.shape[0] - max(0, di), max(0, -dj): face.shape[1] - max(0, dj)]
             b = face[max(0, di): face.shape[0] - max(0, -di) or None, max(0, dj): face.shape[1] - max(0, -dj) or None]
             rise = np.abs(b - a)
             run = math.hypot(di, dj) * cell
             if np.isfinite(rise).any():
+                measured = True
                 worst = max(worst, float(np.degrees(np.arctan(np.nanmax(rise) / run))))
-        return worst
+        return worst if measured else float("nan")
 
     span = int(math.ceil(3 * bench_run / cell))
     return {

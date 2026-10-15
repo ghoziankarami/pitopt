@@ -15,6 +15,7 @@ Notable changes to PitOpt. The format follows
 
 ### Fixed
 - Preserve every valid wall-check pair on small/thin grids without constructing mismatched out-of-grid slices.
+- Keep measurable design-angle comparisons on small/thin grids; report absent spans as unavailable instead of zero degrees.
 - Reject invalid/missing block values; preserve literal categories and source-row identities.
 - Correct volumetric metal units and enforce whole-block scheduling capacity and cash timing.
 - Detect stale results after input/parameter/engine changes and require reruns for derived exports.
