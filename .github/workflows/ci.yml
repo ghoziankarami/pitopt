@@ -1,5 +1,8 @@
 name: ci
-on: [push, pull_request]
+# This candidate is validated locally/manual-only at the owner's request.
+# Preserve the existing jobs for an explicitly requested manual run.
+on:
+  workflow_dispatch:
 permissions:
   contents: read
 

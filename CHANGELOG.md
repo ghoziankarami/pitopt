@@ -14,6 +14,7 @@ Notable changes to PitOpt. The format follows
 - Community files: code of conduct, issue and pull-request templates, citation file.
 
 ### Fixed
+- Preserve every valid wall-check pair on small/thin grids without constructing mismatched out-of-grid slices.
 - Reject invalid/missing block values; preserve literal categories and source-row identities.
 - Correct volumetric metal units and enforce whole-block scheduling capacity and cash timing.
 - Detect stale results after input/parameter/engine changes and require reruns for derived exports.

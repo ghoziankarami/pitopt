@@ -62,8 +62,13 @@ def wall_check(cfg: ProjectConfig, blocks: pd.DataFrame, elevation: Callable | N
     cells = int(radius_m // dx)
     worst, count, pairs = 0.0, 0, 0
     steepest = []
-    for di in range(-cells, cells + 1):
-        for dj in range(-cells, cells + 1):
+    # Offsets beyond either grid dimension have no overlapping columns.
+    # Negative Python slice bounds can wrap instead of producing two equally
+    # empty arrays, so bound the search before constructing paired slices.
+    row_radius = min(cells, surface.shape[0] - 1)
+    column_radius = min(cells, surface.shape[1] - 1)
+    for di in range(-row_radius, row_radius + 1):
+        for dj in range(-column_radius, column_radius + 1):
             d = math.hypot(di, dj) * dx
             if d == 0 or d > radius_m:
                 continue
