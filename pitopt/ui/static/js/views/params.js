@@ -25,10 +25,12 @@ const SECTIONS = [
     ["economics.processing_cost_per_volume", "Biaya proses (umum)", "USD/m³", "num", ""],
   ]],
   ["Sumberdaya & domain", [
+    ["block_model.crs", "CRS (opsional)", "", "string", ""],
+    ["block_model.vertical_datum", "Datum vertikal (opsional)", "", "string", ""],
     ["block_model.density", "Densitas bawaan", "t/m³", "num", ""],
     ["block_model.include_classes", "Kelas sumberdaya dipakai", "", "text", "Pisah dengan koma.", "csv"],
     ["block_model.ore_domains", "Domain bijih", "", "text", "Kosong = semua domain dapat jadi umpan.", "csv"],
-    ["economics.grade_basis", "Basis kadar", "", "sel", "", ["mass_percent", "volume_percent", "ppm", "g_per_t", "fraction"]],
+    ["economics.grade_basis", "Basis kadar", "", "sel", "", ["mass_percent", "volume_percent", "ppm", "gpt", "kgm3", "gm3"]],
   ]],
   ["Geoteknik & bench", [
     ["slope.overall_angle_deg", "Sudut lereng overall", "°", "num", "Dipakai solver untuk template precedence."],
@@ -94,7 +96,7 @@ function field(path, label, unit, type, hint, opt, errs) {
   else if (type === "sel") input = `<select data-on="pset" data-path="${path}" data-t="sel">${opt.map((o) => `<option ${o === v ? "selected" : ""}>${o}</option>`).join("")}</select>`;
   else {
     const shown = v === null || v === undefined ? "" : Array.isArray(v) ? v.join(", ") : v;
-    input = `<input type="text" data-on="pset" data-path="${path}" data-t="${type === "list" ? "list" : opt === "csv" ? "csv" : type === "optnum" || opt === "optnum" ? "optnum" : "num"}" value="${esc(shown)}" ${type === "num" || type === "optnum" ? 'inputmode="decimal"' : ""}>`;
+    input = `<input type="text" data-on="pset" data-path="${path}" data-t="${type === "list" ? "list" : opt === "csv" ? "csv" : type === "string" ? "string" : type === "optnum" || opt === "optnum" ? "optnum" : "num"}" value="${esc(shown)}" ${type === "num" || type === "optnum" ? 'inputmode="decimal"' : ""}>`;
   }
   return `<div class="fld ${pv?.source === "asumsi" ? "assume" : ""} ${changed ? "changed" : ""} ${err ? "err" : ""}"><label>${esc(label)} ${unit ? `<span class="muted xs">${esc(unit)}</span>` : ""} <span class="grow"></span>${tag}</label>${input}${err ? `<div class="hint bad">${esc(err[1])}</div>` : hint ? `<div class="hint">${esc(hint)}</div>` : ""}${pv?.note && !err ? `<div class="hint">${esc(pv.note)}${pv.ref ? ` · <span class="num">${esc(pv.ref)}</span>` : ""}</div>` : ""}</div>`;
 }
@@ -141,7 +143,8 @@ async function derive() {
 A.pset = (el) => {
   const path = el.dataset.path, t = el.dataset.t;
   let v;
-  if (t === "bool") v = el.checked;
+  if (t === "string") v = el.value.trim() || null;
+  else if (t === "bool") v = el.checked;
   else if (t === "sel") v = el.value;
   else if (t === "list") v = arr(el.value);
   else if (t === "csv") v = el.value.split(",").map((x) => x.trim()).filter(Boolean);

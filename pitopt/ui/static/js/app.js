@@ -139,6 +139,9 @@ function render() {
   const view = VIEWS[S.view];
   if (S.loading) mainEl.innerHTML = tx(`<div class="loading">Memuat…</div>`);
   else mainEl.innerHTML = tx(view.render(S.view));
+  if (!S.loading && S.freshness && S.freshness.status !== "current") {
+    mainEl.insertAdjacentHTML("afterbegin", `<div class="banner bad freshness-banner">${esc(t(S.freshness.reason))}</div>`);
+  }
   mounted = S.view;
   if (view.mount && !S.loading) view.mount(mainEl, S.view);
   if (same) mainEl.scrollTop = scroll;
@@ -180,6 +183,6 @@ loadDictionary().then(async () => {
   renderDemoBanner();
   await loadProjects();
   const job = await api("/api/current-job").catch(() => null);
-  if (job?.status === "running") { S.job = { ...job, scenario: S.scenario }; pollJob(); }
+  if (job?.status === "running") { S.job = { ...job, sourceScenario: S.project === job.project ? S.scenario : job.scenario, selectionVersion: S.selectionVersion }; pollJob(); }
   route();
 }).catch((e) => { $app.innerHTML = `<div class="loading">Gagal memuat proyek: ${esc(e.message)}</div>`; });
