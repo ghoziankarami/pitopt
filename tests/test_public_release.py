@@ -190,6 +190,7 @@ def test_project_listing_ignores_macos_appledouble_files(tmp_path):
     assert [p["id"] for p in projects] == ["example_tin"]
 
 
+@pytest.mark.skipif(not (Path(__file__).resolve().parents[1] / "outputs").is_dir(), reason="needs the bundled runs in outputs/")
 def test_grids3d_endpoint_is_whole_metres_and_results_omit_grids(tmp_path):
     shutil.copytree(Path(__file__).resolve().parents[1] / "projects", tmp_path / "projects")
     shutil.copytree(Path(__file__).resolve().parents[1] / "outputs", tmp_path / "outputs")

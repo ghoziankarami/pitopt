@@ -63,8 +63,14 @@ def load_block_model(cfg: BlockModelConfig, econ: EconomicsConfig | None = None)
         )
     # Category labels are literal identifiers, including numeric-looking codes.
     # Support `#` provenance comment headers (such as GeoSuite Resource CSV exports).
-    labels = {column: str for column in (cfg.domain_col, cfg.class_col) if column}
-    raw = pd.read_csv(cfg.path, converters=labels, comment="#")
+    raw = pd.read_csv(cfg.path, comment="#")
+    # Category codes are identifiers, never missing values: "NA", "NULL" and "001" stay literal.
+    # (Reading them with default NA handling turns "NA" into NaN on current pandas.)
+    label_cols = [c for c in (cfg.domain_col, cfg.class_col) if c and c in raw.columns]
+    if label_cols:
+        labels = pd.read_csv(cfg.path, comment="#", usecols=label_cols, dtype=str, keep_default_na=False, na_values=[])
+        for column in label_cols:
+            raw[column] = labels[column].to_numpy()
     if raw.empty:
         raise ValueError("Block model contains no data rows.")
 

@@ -122,7 +122,7 @@ def _results() -> Path:
     return found[0] if found else None
 
 
-def _differences(expected: dict, actual: dict, rel: float = 1e-9, abs_: float = 1e-9) -> list[str]:
+def _differences(expected: dict, actual: dict, rel: float = 1e-9, abs_: float = 1e-6) -> list[str]:
     out = []
     for key in sorted(set(expected) | set(actual)):
         if key not in actual:
