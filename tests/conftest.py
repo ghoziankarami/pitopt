@@ -52,7 +52,18 @@ def pytest_configure(config):
 
 
 def discover_runs() -> list[Path]:
-    return sorted(ROOT.glob("outputs/*/*_results.json")) + sorted(ROOT.glob(".pytest_runs/*/*_results.json"))
+    import json
+
+    candidates = sorted(ROOT.glob("outputs/*/*_results.json")) + sorted(ROOT.glob(".pytest_runs/*/*_results.json"))
+    valid: list[Path] = []
+    for p in candidates:
+        try:
+            meta = json.loads(p.read_text()).get("meta", {})
+            if meta.get("job_id"):
+                valid.append(p)
+        except Exception:
+            continue
+    return valid
 
 
 def run_id(path: Path) -> str:

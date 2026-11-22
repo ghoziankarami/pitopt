@@ -87,6 +87,22 @@ def bench_geometry(overall_angle_deg: float, bench_height: float, face_angle_deg
     return BenchGeometry(bench_height, face_angle_deg, berm_width)
 
 
+def domain_geometries(
+    overall_angle_deg: float,
+    bench_height: float,
+    face_angle_deg: float,
+    berm_width: float | None,
+    domain_angles: dict | None = None,
+) -> dict[object, BenchGeometry]:
+    """Per-domain BenchGeometry table from slope.domain_angles."""
+    if not domain_angles:
+        return {}
+    return {
+        dom: bench_geometry(float(angle), bench_height, face_angle_deg, berm_width)
+        for dom, angle in domain_angles.items()
+    }
+
+
 @dataclass
 class DesignGrid:
     xs: np.ndarray
@@ -134,7 +150,36 @@ def _floor_raster(blocks: pd.DataFrame, mined: np.ndarray, grid: DesignGrid) -> 
     return raster
 
 
-def pit_shell(blocks: pd.DataFrame, mined: np.ndarray, grid: DesignGrid, geometry: BenchGeometry) -> np.ndarray:
+def _floor_domain_raster(
+    blocks: pd.DataFrame, mined: np.ndarray, grid: DesignGrid, dom_to_idx: dict[object, int],
+) -> np.ndarray:
+    """Integer domain index (-1 for unmapped/outside) of the lowest mined block in each column."""
+    gi0, gj0 = int(blocks["gi"].min()), int(blocks["gj"].min())
+    mined_df = blocks[mined]
+    floor_idx = mined_df.groupby(["gi", "gj"])["z"].idxmin()
+    floor_blocks = mined_df.loc[floor_idx]
+    ni = int(blocks["gi"].max()) - gi0 + 1
+    nj = int(blocks["gj"].max()) - gj0 + 1
+    lookup = np.full((ni, nj), -1, dtype=int)
+    mapped = np.array([dom_to_idx.get(d, -1) for d in floor_blocks["domain"]], dtype=int)
+    lookup[floor_blocks["gi"].to_numpy(dtype=int) - gi0, floor_blocks["gj"].to_numpy(dtype=int) - gj0] = mapped
+    ii = np.clip(grid.cell_i - gi0, 0, ni - 1)
+    jj = np.clip(grid.cell_j - gj0, 0, nj - 1)
+    raster = lookup[ii][:, jj]
+    outside_i = (grid.cell_i < gi0) | (grid.cell_i - gi0 >= ni)
+    outside_j = (grid.cell_j < gj0) | (grid.cell_j - gj0 >= nj)
+    raster[outside_i, :] = -1
+    raster[:, outside_j] = -1
+    return raster
+
+
+def pit_shell(
+    blocks: pd.DataFrame,
+    mined: np.ndarray,
+    grid: DesignGrid,
+    geometry: BenchGeometry,
+    domain_geometries: dict[object, BenchGeometry] | None = None,
+) -> np.ndarray:
     """The benched bowl. Walls rise from the edge of the optimised floor —
     the toe sits on the shell's floor boundary, the usual design
     convention — so the design always contains the floor of the shell,
@@ -154,6 +199,18 @@ def pit_shell(blocks: pd.DataFrame, mined: np.ndarray, grid: DesignGrid, geometr
     # distance transform per floor level gives that exactly, instead of
     # dilating by every offset in the cone.
     shell = floor.copy()
+    if domain_geometries and "domain" in blocks.columns:
+        dom_keys = list(domain_geometries.keys())
+        dom_to_idx = {k: idx for idx, k in enumerate(dom_keys)}
+        floor_dom = _floor_domain_raster(blocks, mined, grid, dom_to_idx)
+        for level in np.unique(source[np.isfinite(source)]):
+            at_level = source == level
+            for d_idx in np.unique(floor_dom[at_level]):
+                geom = geometry if d_idx < 0 else domain_geometries[dom_keys[int(d_idx)]]
+                distance = ndimage.distance_transform_edt(~(at_level & (floor_dom == d_idx)), sampling=cell)
+                np.minimum(shell, level + geom.rise(distance), out=shell)
+        return shell
+
     for level in np.unique(source[np.isfinite(source)]):
         distance = ndimage.distance_transform_edt(source != level, sampling=cell)
         np.minimum(shell, level + geometry.rise(distance), out=shell)

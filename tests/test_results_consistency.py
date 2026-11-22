@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 from conftest import discover_runs, run_id  # noqa: E402
 
 RESULTS = discover_runs()
-pytestmark = pytest.mark.skipif(not RESULTS, reason="no runs in outputs/")
+_SKIP_NO_RUNS = pytest.mark.skipif(not RESULTS, reason="no runs in outputs/")
 
 
 @pytest.fixture(params=RESULTS, ids=run_id)
@@ -233,3 +233,39 @@ def test_detailed_design_is_tied_to_the_block_model(run):
         depth = d["crest_rl"] - d["floor_rl"]
         assert close(ramp["horizontal_length_m"], depth / (ramp["grade_pct"] / 100.0), rel=1e-6)
     assert set(d["provenance"]["validation"]) >= {"shapeFit", "ira", "osa", "reconciliation", "ramp", "selfIntersection", "minWidth"}
+
+
+def test_design_schedule_reconciliation_conserves_tonnes_and_npv(tmp_path):
+    """Practical design schedule reconciliation (in_design) must conserve in_design
+    tonnages/cash and report design NPV alongside shell NPV without changing kpis.npv_plan."""
+    from pitopt.config import ProjectConfig
+    from pitopt.pipeline import run as run_pipeline
+
+    cfg = ProjectConfig.from_yaml(str(ROOT / "projects/example_tin/project.yaml"))
+    cfg.output.directory = str(tmp_path)
+    cfg.output.write_dxf = False
+    cfg.output.write_pdf = False
+    cfg.output.write_excel = False
+    cfg.output.write_3d = False
+    cfg.output.write_plot = False
+    result = run_pipeline(cfg, verbose=False)
+
+    r = json.loads((tmp_path / f"{cfg.name}_results.json").read_text())
+    blocks = result.blocks
+    sr = r["design"]["reconciliation"].get("schedule_reconciliation")
+    assert sr is not None, "missing schedule_reconciliation in design.reconciliation"
+    assert result.design["schedule_reconciliation"] == pytest.approx(sr)
+    in_des = blocks["in_design"].astype(bool)
+    ore_mask = in_des & (blocks["destination"] == 1)
+    expected_rock = float(blocks.loc[in_des, "rock_tonnes"].sum())
+    expected_ore = float(blocks.loc[ore_mask, "ore_tonnes"].sum())
+    expected_waste = expected_rock - float(blocks.loc[ore_mask, "rock_tonnes"].sum())
+    expected_cash = float(blocks.loc[in_des, "value"].sum())
+
+    assert sr["periods"] >= 1
+    assert close(sr["rock_tonnes"], expected_rock, rel=1e-6)
+    assert close(sr["ore_tonnes"], expected_ore, rel=1e-6)
+    assert close(sr["waste_tonnes"], expected_waste, rel=1e-6)
+    assert close(sr["total_cash_flow"], expected_cash, rel=1e-6, abs_=1.0)
+    assert close(sr["shell_npv"], r["kpis"]["npv_plan"], rel=1e-6, abs_=1.0)
+    assert close(sr["npv_diff"], sr["npv"] - sr["shell_npv"], rel=1e-6, abs_=1.0)

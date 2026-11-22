@@ -37,3 +37,21 @@ A repository history audit found old commits and generated bundles with client-s
 - Third-party software keeps its own licenses. See `THIRD_PARTY_NOTICES.md`; re-audit before bundling binaries or changing dependency versions.
 
 This is a technical release review, not a legal opinion. Before the first public push, verify copyright ownership/authority, review the clean snapshot and GitHub account's intended repository destination. Do not push the private history to a public remote.
+
+---
+
+## 45-Check Production Readiness Certification (2026-11-21)
+
+Audit terhadap rubrik 45-pemeriksaan pada `docs/SPEC.md` §3 setelah penyelesaian `WP-01`..`WP-15`:
+
+| Dimensi | Status | Catatan Verifikasi |
+|---|---|---|
+| **D1. Kebenaran Matematika & Solver (`CORE`)** | **5/5 PASS** | 1.1–1.5 PASS (`tests/test_independent_algorithms.py` 20+ korpus analitik & ekuivalensi bit-for-bit `scipy_dinic` vs `preflow_push`, `tests/test_input_contract.py`, `tests/test_regression_gate.py` hijau dengan 12 kunci aditif baru atas otorisasi pemilik). |
+| **D2. Kelayakan Geoteknik & Desain (`DESIGN`)** | **5/5 PASS** | 2.1–2.5 PASS (`tests/test_design_service.py`, `tests/test_design_detail_geometry.py`, `tests/test_design_detail_validation.py`): sudut domain (`slope.domain_angles`) & pemisahan `steepest_wall_over_3_benches_deg` terverifikasi dengan bukti mutasi. |
+| **D3. Penjadwalan & Rekonsiliasi Ekonomi (`CORE`)** | **5/5 PASS** | 3.1–3.5 PASS (`tests/test_schedule_capacity.py`, `tests/test_results_consistency.py`): jadwal & NPV desain praktis (`in_design`) tersedia berdampingan dengan `in_pit` tanpa mengubah `kpis.npv_plan`. |
+| **D4. Interoperabilitas & Kontrak Input (`IO`)** | **5/5 PASS** | 4.1–4.5 PASS (`tests/test_input_contract.py`, `tests/test_onboard.py`, `tests/test_datfile_reblock.py`, `tests/test_dxf_topography.py`): header komentar `#` GeoSuite, `unestimated_action` (`reject`/`drop`/`zero_waste`), dan metadata CRS/datum. |
+| **D5. Performa & Ketahanan Sistem Lintas Platform (`CORE/REL`)** | **5/5 PASS** | 5.1–5.5 PASS (`pitopt/core/limits.py`, `pitopt/core/solver.py` `scipy_dinic`, `PitOpt.bat`, `scripts/start_ui.sh`, `tests/test_launcher.py`). |
+| **D6. UI/UX, Alur Kerja & Aksesibilitas (`UI`)** | **5/5 PASS** | 6.1–6.5 PASS (`tests/test_app_screens.py` 18/18, `tests/test_design_ui.py` 13/13, `tests/test_i18n.py` 5/5): Quick Pit 1-layar, paritas ID/EN 23 tampilan, viewport `375px`/`768px`/`1440px`, dan WCAG 2.2 AA. |
+| **D7. Artefak Keluaran & Offline-First (`IO/UI`)** | **5/5 PASS** | 7.1–7.5 PASS (`tests/test_outputs_consistency.py`): 0 CDN eksternal di HTML 3D, PDF eksekutif dengan CRS/provenance, metadata DXF. |
+| **D8. Keamanan, Otomasi MCP & Batas Publik (`MCP/REL`)** | **5/5 PASS** | 8.1–8.5 PASS (`tests/test_ui_server.py`, `tests/test_upload_atomic.py`, `tests/test_mcp_server.py`, `check_repository_hygiene.py`, `check_commit_authorship.py`): `PayloadTooLarge` 413, guard symlink, proteksi `example_tin`, dan `PitOptCommands`. |
+| **D9. Tata Kelola Open-Source, Paket & CI (`DOCS/REL`)** | **5/5 PASS** | 9.1–9.5 PASS (`scripts/check_installed_package.py`, `check-docs.py`, `check-plan-registry.py`, `wp.py check`, dan `local-ci.sh --full --write-receipt` + Playwright 31/31 hijau). |

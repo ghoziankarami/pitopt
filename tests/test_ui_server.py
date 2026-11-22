@@ -126,3 +126,52 @@ def test_cross_site_and_headerless_posts_are_refused():
         assert _request(port, "/api/rename", "POST", {**own, "Origin": f"http://127.0.0.1:{port}"}, json.dumps({"project": "example_tin", "name": " "})) == 400
     finally:
         server.shutdown()
+
+
+def test_example_tin_protected_from_destructive_mutations(tmp_path):
+    app = _mini_root(tmp_path)
+    tin = tmp_path / "projects" / "example_tin"
+    tin.mkdir(parents=True)
+    (tin / "project.yaml").write_text("project: {name: example_tin, title: Tin}\nblock_model: {path: data/tin.csv}\n")
+    with pytest.raises(PermissionError):
+        app.delete("example_tin", None, "example_tin")
+    with pytest.raises(PermissionError):
+        app.rename("example_tin", None, "Hacked")
+    assert (tin / "project.yaml").exists()
+
+
+def test_symlink_outside_project_is_rejected(tmp_path):
+    from pitopt.ui import onboard
+
+    outside = tmp_path / "secret.csv"
+    outside.write_text("X,Y,Z,AU\n0,0,0,1\n")
+    data_dir = tmp_path / "projects" / "demo" / "data"
+    data_dir.mkdir(parents=True)
+    link = data_dir / "escape.csv"
+    link.symlink_to(outside)
+
+    with pytest.raises(PermissionError):
+        onboard.inspect_file(link)
+    with pytest.raises(PermissionError):
+        onboard.reblock_file(data_dir, {"file": "escape.csv"})
+
+
+def test_oversized_json_payload_is_rejected():
+    from pitopt.ui.server import MAX_JSON_BODY
+
+    server, port = _serve()
+    try:
+        headers = {"Content-Type": "application/json", "X-PitOpt": "1", "Content-Length": str(MAX_JSON_BODY + 1)}
+        import http.client
+
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        conn.putrequest("POST", "/api/validate")
+        for k, v in headers.items():
+            conn.putheader(k, v)
+        conn.endheaders(b"")
+        resp = conn.getresponse()
+        resp.read()
+        conn.close()
+        assert resp.status in (400, 413)
+    finally:
+        server.shutdown()

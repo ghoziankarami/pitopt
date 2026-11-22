@@ -26,7 +26,7 @@ const VIEWS = {
   ringkasan: summary, "pit-by-pit": pitbypit, "pit-final": pitbypit, pushback: plan, rencana: plan, desain: plan,
   "d-sumber": dSumber, "d-sektor": dSektor, "d-ramp": dRamp, "d-generate": dGenerate, "d-validasi": dValidasi,
   "d-penampang": dPenampang, "d-ekspor": dEkspor,
-  unggah: upload, blok: blocks, sensitivitas: misc, "3d": view3d, parameter: params, data: misc, qa: misc, jalankan: misc, bandingkan: misc, ekspor: misc,
+  quick: upload, unggah: upload, blok: blocks, sensitivitas: misc, "3d": view3d, parameter: params, data: misc, qa: misc, jalankan: misc, bandingkan: misc, ekspor: misc,
 };
 const $app = document.getElementById("app");
 let mounted = null;
@@ -36,7 +36,7 @@ A.go = (el) => { location.hash = `#/${el.dataset.go}`; };
 function renderDemoBanner() {
   const banner = $("#demo-banner");
   if (!banner || !document.body.classList.contains("demo")) return;
-  banner.innerHTML = `<span>${t("Demo sintetis · prototipe riset, bukan desain siap tambang. NPV memakai shell dan asumsi model.")}</span><a href="#/unggah">${t("Jalankan dengan data Anda →")}</a><a href="${esc(S.demoRepoUrl)}" target="_blank" rel="noopener noreferrer">★ ${t("Star di GitHub")}</a>`;
+  banner.innerHTML = `<span>${t("PitOpt Web Workspace (Dataset Studi Kasus) — Gunakan aplikasi desktop lokal untuk memproses block model & DXF Anda sendiri.")}</span><a href="/">${t("Beranda PitOpt →")}</a><a href="#/unggah">${t("Jalankan dengan data Anda →")}</a><a href="${esc(S.demoRepoUrl)}" target="_blank" rel="noopener noreferrer">★ ${t("Star di GitHub")}</a>`;
 }
 A.lang = (el) => { setLang(el.dataset.v); renderDemoBanner(); closeModal(); notify(); };
 A.theme = () => setTheme(S.theme === "dark" ? "light" : "dark");
@@ -54,7 +54,7 @@ function route() {
 }
 
 const NAV = [
-  ["data", "01", "Data"], ["qa", "02", "QA Data"], ["parameter", "03", "Parameter"], ["jalankan", "04", "Jalankan"],
+  ["unggah", "00", "Estimasi Cepat"], ["data", "01", "Data"], ["qa", "02", "QA Data"], ["parameter", "03", "Parameter"], ["jalankan", "04", "Jalankan"],
 ];
 
 function pillFor(id, r) {
@@ -92,34 +92,34 @@ function shell() {
   const v = r?.verification;
   const clean = v && v.walls === 0 && v.cone === 0 && v.schedule === 0;
   const when = meta?.run_at ? new Date(meta.run_at).toLocaleString(locale(), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
-  const sub = (id, label) => `<a data-go="${id}" class="${S.view === id ? "active" : ""}">${label}</a>`;
-  const nav = (id, no, label, extra = "") => `<a class="nav ${S.view === id ? "active" : ""}" data-go="${id}"><span class="no num">${no}</span><span class="grow">${label}</span>${extra}</a>`;
+  const sub = (id, label) => `<a href="#/${id}" data-go="${id}" class="${S.view === id ? "active" : ""}" ${S.view === id ? 'aria-current="page"' : ""}>${label}</a>`;
+  const nav = (id, no, label, extra = "") => `<a href="#/${id}" class="nav ${S.view === id ? "active" : ""}" data-go="${id}" ${S.view === id ? 'aria-current="page"' : ""}><span class="no num">${no}</span><span class="grow">${label}</span>${extra}</a>`;
   const inDesign = S.view.startsWith("d-");
   const inResult = ["ringkasan", "pit-by-pit", "pit-final", "pushback", "rencana", "desain", "blok", "sensitivitas"].includes(S.view);
   const compareCount = project ? project.scenarios.filter((s) => s.has_results).length : 0;
   return `
 <header class="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M2 5H20L16.5 10H13L10.5 15H7L5.5 19H2Z" fill="#C9A97A" stroke="#8A6A3B" stroke-width="1.2" stroke-linejoin="round"/></svg>PitOpt<span class="tag num">engine ${esc(meta?.engine_version || "0.4")}</span></div>
+  <div class="brand"><a class="brand-link" href="/"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 5H20L16.5 10H13L10.5 15H7L5.5 19H2Z" fill="#C9A97A" stroke="#8A6A3B" stroke-width="1.2" stroke-linejoin="round"/></svg>PitOpt</a><span class="tag num">v${esc(S.appVersion)}</span></div>
   <div class="vsep"></div>
   <div class="field"><label for="proyek">Proyek</label><select id="proyek" data-on="project">${S.projects.map((p) => `<option value="${esc(p.id)}" ${p.id === S.project ? "selected" : ""}>${esc(p.title)}</option>`).join("")}</select></div>
   <div class="field"><label for="skenario">Skenario</label><select id="skenario" data-on="scenario">${(project?.scenarios || []).map((s) => `<option value="${esc(s.id)}" ${s.id === S.scenario ? "selected" : ""}>${esc(s.label)}${s.has_results ? "" : " · belum dijalankan"}</option>`).join("")}</select></div>
   <div class="grow"></div>
   ${meta ? `<div class="runinfo num">Run <span>${esc(when)}</span> · ${meta.shells} shell · ${fmt(meta.duration_s, 0)} s<br><span class="${clean ? "good" : "bad"}">verifikasi ${v.walls}/${v.cone}/${v.schedule} pelanggaran</span></div>` : ""}
   <button class="btn" data-act="manage" title="Proyek baru, ganti nama, hapus">Kelola</button>
-  <div class="tabs lang" role="group" aria-label="Language"><button data-act="lang" data-v="id" class="${lang === "id" ? "on" : ""}" title="Bahasa Indonesia">ID</button><button data-act="lang" data-v="en" class="${lang === "en" ? "on" : ""}" title="English">EN</button></div>
-  <button class="btn" data-act="theme" title="Mode gelap / terang">${S.theme === "dark" ? "☀" : "☾"}</button>
+  <div class="tabs lang" role="group" aria-label="Language"><button data-act="lang" data-v="id" class="${lang === "id" ? "on" : ""}" aria-pressed="${lang === "id"}" title="Bahasa Indonesia">ID</button><button data-act="lang" data-v="en" class="${lang === "en" ? "on" : ""}" aria-pressed="${lang === "en"}" title="English">EN</button></div>
+  <button class="btn" data-act="theme" title="Mode gelap / terang" aria-label="Mode gelap / terang" aria-pressed="${S.theme === "dark"}">${S.theme === "dark" ? "☀" : "☾"}</button>
   ${S.demoMode ? `<button class="btn primary" data-go="unggah">Pakai data Anda →</button>` : `<button class="btn primary" data-act="package" ${r ? "" : "disabled"}>Ekspor .zip</button>`}
 </header>
 <div class="shell">
   <nav class="side ${RAIL.has(S.view) ? "rail" : ""}" aria-label="Alur kerja">
     <div class="navh">ALUR KERJA</div>
     ${NAV.map(([id, no, label]) => nav(id, no, label, pillFor(id, r))).join("")}
-    <a class="nav parent ${inResult ? "active" : ""}" data-go="ringkasan"><span class="no num">05</span><span class="grow">Hasil</span></a>
+    <a href="#/ringkasan" class="nav parent ${inResult ? "active" : ""}" data-go="ringkasan"><span class="no num">05</span><span class="grow">Hasil</span></a>
     <div class="subnav">
       ${sub("ringkasan", "Ringkasan")}${sub("pit-by-pit", "Pit by Pit")}${sub("pit-final", "Pit Final")}${sub("pushback", "Pushback")}${sub("rencana", "Rencana Periode")}${sub("desain", "Desain")}${sub("blok", "Model Blok")}${sub("sensitivitas", "Sensitivitas")}
     </div>
-    <a class="nav parent ${inDesign ? "active" : ""}" data-go="d-sumber"><span class="no num">06</span><span class="grow">Desain Detail</span></a>
-    <div class="subnav">${DESIGN.map(([id, label]) => `<a data-go="${id}" class="${S.view === id ? "active" : ""}"><span>${label}</span>${designPill(id)}</a>`).join("")}</div>
+    <a href="#/d-sumber" class="nav parent ${inDesign ? "active" : ""}" data-go="d-sumber"><span class="no num">06</span><span class="grow">Desain Detail</span></a>
+    <div class="subnav">${DESIGN.map(([id, label]) => `<a href="#/${id}" data-go="${id}" class="${S.view === id ? "active" : ""}" ${S.view === id ? 'aria-current="page"' : ""}><span>${label}</span>${designPill(id)}</a>`).join("")}</div>
     ${nav("3d", "07", "3D &amp; Penampang", `<span class="num xs muted">VE ${fmt(S.ve, 0)}×</span>`)}
     ${nav("bandingkan", "08", "Bandingkan", `<span class="num xs muted">${compareCount}</span>`)}
     ${nav("ekspor", "09", "Ekspor")}
@@ -167,6 +167,16 @@ $app.addEventListener("change", async (e) => {
   else if (on && A[on]) A[on](e.target, e);
 });
 $app.addEventListener("input", (e) => { const on = e.target.dataset.input; if (on && A[on]) A[on](e.target, e); });
+$app.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const el = e.target.closest("[role='button'][data-act], a[data-act]");
+  if (!el) return;
+  e.preventDefault();
+  if (A[el.dataset.act]) A[el.dataset.act](el, e);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("modal")) closeModal();
+});
 
 subscribe(render);
 window.addEventListener("hashchange", route);
@@ -185,4 +195,4 @@ loadDictionary().then(async () => {
   const job = await api("/api/current-job").catch(() => null);
   if (job?.status === "running") { S.job = { ...job, sourceScenario: S.project === job.project ? S.scenario : job.scenario, selectionVersion: S.selectionVersion }; pollJob(); }
   route();
-}).catch((e) => { $app.innerHTML = `<div class="loading">Gagal memuat proyek: ${esc(e.message)}</div>`; });
+}).catch((e) => { $app.innerHTML = `<div class="loading">${esc(t("Gagal memuat proyek"))}: ${esc(e.message)}</div>`; });

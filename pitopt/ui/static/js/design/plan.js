@@ -2,6 +2,7 @@
 // outlines, the road and the sector lines. Blocks are drawn one path per colour, not one element per cell, so a
 // bench of tens of thousands of blocks stays fast.
 import { viridis } from "../util.js";
+import { lang } from "../i18n.js";
 
 // Sequential purples for grade classes, light to dark; the first (waste) is a neutral. Dark mode keeps the order.
 const CLASS = {
@@ -90,7 +91,7 @@ export function scaleBar(v, colour) {
 export function north(v, colour) {
   const c = v.ctx, x = v.w - 22, y = 30;
   c.fillStyle = c.strokeStyle = colour; c.beginPath(); c.moveTo(x, y - 14); c.lineTo(x - 6, y + 4); c.lineTo(x + 6, y + 4); c.closePath(); c.fill();
-  c.font = "600 11px 'IBM Plex Sans', sans-serif"; c.textAlign = "center"; c.fillText("U", x, y + 18); c.textAlign = "left";
+  c.font = "600 11px 'IBM Plex Sans', sans-serif"; c.textAlign = "center"; c.fillText(lang === "en" ? "N" : "U", x, y + 18); c.textAlign = "left";
 }
 export function axes(v, colour) {
   const c = v.ctx, [x0, y0, x1, y1] = v.bounds, step = nice(80 / v.s);

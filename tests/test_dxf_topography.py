@@ -13,7 +13,7 @@ import ezdxf
 import numpy as np
 import pytest
 
-from pitopt.io.dxf import read_surface, read_surface_points
+from pitopt.io.dxf import read_surface, read_surface_metadata, read_surface_points, write_surface
 from pitopt.ui.onboard import inspect_surface
 
 X0, Y0 = 500_000.0, 9_150_000.0                  # real-world UTM, so a stray origin point would be far outside
@@ -134,3 +134,26 @@ def test_contours_that_lost_their_elevation_are_flagged_at_upload(tmp_path):
     tin(doc.modelspace())
     doc.saveas(tmp_path / "ok.dxf")
     assert inspect_surface(tmp_path / "ok.dxf")["warnings"] == []
+
+
+def test_write_surface_preserves_crs_and_vertical_datum_header(tmp_path):
+    path = tmp_path / "surface_with_crs.dxf"
+    xs = X0 + XS[:5]
+    ys = Y0 + XS[:5]
+    gz = GZ[:5, :5]
+    faces = write_surface(
+        str(path),
+        xs,
+        ys,
+        gz,
+        layer="PIT_SURFACE",
+        project="example_tin",
+        crs="EPSG:32748",
+        vertical_datum="EGM2008",
+    )
+    assert faces == 32
+    meta = read_surface_metadata(str(path))
+    assert meta == {"PROJECT": "example_tin", "CRS": "EPSG:32748", "VERTICAL_DATUM": "EGM2008"}
+    pts = read_surface_points(str(path))
+    assert pts.shape[1] == 3
+    assert pts[:, 0].min() >= X0 - 1e-6 and pts[:, 1].min() >= Y0 - 1e-6

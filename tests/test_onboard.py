@@ -239,3 +239,34 @@ def test_a_guess_is_only_a_suggestion_and_any_column_name_runs(tmp_path):
     cfg = ProjectConfig.from_yaml(str(tmp_path / "p.yaml"))
     blocks = load_block_model(cfg.block_model, cfg.economics)
     assert list(blocks["x"]) == [5.0, 15.0] and list(blocks["kadar_emas"]) == [1.2, 0.3]
+
+
+def test_inspect_geosuite_csv_with_comments_and_sentinel_warning(tmp_path):
+    p = tmp_path / "geosuite.csv"
+    p.write_text(
+        "# GeoSuite Resource Export\n"
+        "# Generated: 2026-10-13\n"
+        "EAST,NORTH,RL,AU_GPT\n"
+        "100,200,50,1.2\n"
+        "110,200,50,-999\n"
+    )
+    info = onboard.inspect_file(p)
+    assert info["rows"] == 2
+    assert info["guess"]["x"] == "EAST"
+    assert any("-999" in w for w in info["warnings"])
+
+
+def test_inspect_geosuite_csv_extracts_crs_and_vertical_datum_from_comments(tmp_path):
+    p = tmp_path / "geosuite_meta.csv"
+    p.write_text(
+        "# GeoSuite Resource Model Export v1.2\n"
+        "# CRS: EPSG:32748 | Vertical Datum: EGM2008\n"
+        "X,Y,Z,AU_GPT\n"
+        "100,200,50,1.2\n"
+        "110,200,50,0.8\n"
+    )
+    info = onboard.inspect_file(p)
+    assert info["crs"] == "EPSG:32748"
+    assert info["vertical_datum"] == "EGM2008"
+
+

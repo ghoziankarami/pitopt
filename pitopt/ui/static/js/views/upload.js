@@ -1,22 +1,43 @@
-// New project from the user's own files: upload → map columns → economics → create.
-import { S, notify, loadProjects2, select } from "../store.js";
+// New project & 1-screen Quick Pit Estimation: sample/CSV → instant pre-validation & RAM → run → KPI & 3D.
+import { S, notify, loadProjects2, select, ensureGrids3d } from "../store.js";
 import { A } from "../actions.js";
-import { fmt, fmtInt, esc, api, qs, toast } from "../util.js";
-import { pageHead } from "./common.js";
+import { fmt, fmtInt, mUSD, mt, pcts, esc, api, qs, toast, tr } from "../util.js";
+import { pageHead, kpi } from "./common.js";
+import { pollJob } from "../run.js";
 import { t } from "../i18n.js";
 
 const fresh = () => ({
-  title: "", slug: "", block: null, surface: null, progress: null, busy: false, error: null, warnings: [],
+  mode: "quick",
+  title: "", slug: "", sampleSource: "", block: null, surface: null, progress: null, busy: false, error: null, warnings: [],
   map: {}, size: {}, density: "", uniques: {}, include_classes: [], ore_domains: [],
   eco: { grade_basis: "mass_percent", mining_recovery: 1, dilution: 0, royalty_rate: 0, mining_cost_per_tonne: "", processing_cost_per_tonne: 0 },
   products: [{ name: "", grade_col: "", price: "", price_unit: "t", plant_recovery: 1, processing_cost_per_tonne: 0, selling_cost_per_tonne: 0, density: "" }],
   rb: { target: { dx: "", dy: "", dz: "" }, parent: { dx: "", dy: "", dz: "" }, grades: [], strip: false, busy: false, err: null, result: null },
   crs: "", vertical_datum: "", volume_col: "", slope_angle: 45, capacity: "", periods: "", discount_rate: 0.1, bench_height: "", bench_face_angle: 65, touched: new Set(),
+  ram: null, ramBusy: false, quickProject: null,
 });
 let w = fresh();
+let plotlyLoader = null;
 const slug = () => (w.slug || w.title).trim().toLowerCase().replace(/[^0-9a-z_-]+/g, "_").replace(/^_+|_+$/g, "");
 
+function ensureQuickTitle(prefix = "Quick Pit") {
+  if (!slug()) {
+    const tag = Date.now().toString(36).slice(-4);
+    w.title = `${prefix} ${tag}`;
+    w.slug = slug();
+  }
+}
+
+function loadPlotly() {
+  if (window.Plotly) return Promise.resolve(window.Plotly);
+  return (plotlyLoader ||= new Promise((ok, no) => {
+    const s = document.createElement("script"); s.src = "/static/vendor/plotly.min.js";
+    s.onload = () => ok(window.Plotly); s.onerror = () => no(new Error(t("Plotly gagal dimuat"))); document.head.appendChild(s);
+  }));
+}
+
 function upload(file, kind) {
+  if (w.mode === "quick") ensureQuickTitle("Quick Pit");
   const project = slug();
   if (!project) return toast("Isi nama proyek dulu.");
   w.error = null; w.progress = { kind, name: file.name, pct: 0 }; notify();
@@ -34,6 +55,7 @@ function upload(file, kind) {
   xhr.onerror = () => { w.progress = null; w.error = "Unggah gagal (koneksi)."; notify(); };
   xhr.send(file);
 }
+
 async function acceptBlock(res) {
   const info = res.inspect;
   if (info.kind === "surface" || info.kind === "surface_csv") { w.error = "Berkas ini terlihat seperti topografi, bukan model blok. Unggah di kotak Topografi."; return; }
@@ -48,25 +70,40 @@ async function acceptBlock(res) {
   const grades = Object.keys(info.stats || {}).filter((c) => c !== w.map.density_col);
   if (grades.length === 1 && !w.products[0].grade_col) { w.products[0].grade_col = grades[0]; w.products[0].name ||= grades[0].replace(/_?(PCT|PPM|GPT)$/i, ""); }
   w.warnings = [...(info.warnings || [])];
+  w.ram = info.ram_default || null;
   await loadUniques("domain_col"); await loadUniques("class_col");
   checkExtents();
+  if (w.mode === "quick" && !w.ram) await refreshRam();
 }
+
 function acceptSurface(res) {
   const i = res.inspect;
   w.surface = { file: res.file, info: i, format: i.format };
   if (i.format === "csv") w.surface.map = { x_col: i.guess.x || "", y_col: i.guess.y || "", z_col: i.guess.z || "" };
   checkExtents();
 }
+
 function checkExtents() {
   w.warnings = w.warnings.filter((x) => !x.startsWith("Topografi"));
   const e = w.block?.info.extent, s = w.surface?.info.extent;
   if (!e || !s) return;
   for (const [k, label] of [["x", "Easting"], ["y", "Northing"]]) if (s[k][1] < e[k][0] || s[k][0] > e[k][1]) w.warnings.push(`Topografi: ${label} (${fmt(s[k][0], 0)}–${fmt(s[k][1], 0)}) tidak beririsan dengan model blok (${fmt(e[k][0], 0)}–${fmt(e[k][1], 0)}). Sistem koordinat berbeda?`);
 }
+
 async function loadUniques(key) {
   const col = w.map[key];
   if (!col) { delete w.uniques[key]; return; }
   try { w.uniques[key] = await api(`/api/uniques?${qs({ project: slug(), file: w.block.file, col })}`); } catch { delete w.uniques[key]; }
+}
+
+async function refreshRam() {
+  const rows = w.block?.info?.rows, dx = Number(w.size.dx), dy = Number(w.size.dy), dz = Number(w.size.dz), angle = Number(w.slope_angle);
+  if (!(rows > 0 && dx > 0 && dy > 0 && dz > 0 && angle > 0 && angle < 90)) { w.ram = null; return; }
+  w.ramBusy = true;
+  try {
+    w.ram = await api("/api/quick/ram", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rows, dx, dy, dz, slope_angle: angle }) });
+  } catch { /* keep previous or null */ }
+  w.ramBusy = false;
 }
 
 const sel = (path, options, value, blank = "— tidak ada —") => `<select data-on="wset" data-path="${path}">${blank === null ? "" : `<option value="">${blank}</option>`}${options.map((o) => `<option ${o === value ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
@@ -75,16 +112,137 @@ const fld = (label, input, hint = "") => `<div class="fld"><label>${label}</labe
 const drop = (kind, title, hint, done) => `<label class="drop ${done ? "done" : ""}"><input type="file" hidden data-on="wfile" data-kind="${kind}" accept="${kind === "block" ? ".csv" : ".dxf,.csv"}">
   <b>${title}</b><span class="muted small">${done ? `<span class="good">✓</span> ${esc(done)}` : hint}</span></label>`;
 
+function renderQuick() {
+  const b = w.block, i = b?.info, cols = i?.columns || [], numeric = i?.numeric || [];
+  const sampleOpts = S.projects.map((p) => `<option value="${esc(p.id)}" ${(w.sampleSource || S.projects[0]?.id) === p.id ? "selected" : ""}>${esc(p.title || p.id)}</option>`).join("");
+  const uploading = w.progress ? `<div class="banner small" style="margin-top:12px">Mengunggah ${esc(w.progress.name)} — ${fmt(w.progress.pct * 100, 0)}%<div class="bar"><div style="width:${w.progress.pct * 100}%"></div></div></div>` : "";
+
+  const ram = w.ram;
+  const ramPill = !ram ? "" : ram.status === "ok"
+    ? `<span class="pill ok">RAM cukup</span>`
+    : ram.status === "warn"
+      ? `<span class="pill warn">Mendekati batas RAM</span>`
+      : `<span class="pill bad">Melebihi RAM</span>`;
+  const precheck = !b
+    ? `<div class="empty" style="padding:28px">Pilih dataset contoh atau unggah CSV untuk melihat pra-validasi dan estimasi memori instan.</div>`
+    : `<div class="kv">
+        <span>Jumlah blok</span><span>${fmtInt(i.rows)}</span>
+        <span>Ukuran blok</span><span>${w.size.dx ? `${fmt(w.size.dx, 1)} × ${fmt(w.size.dy, 1)} × ${fmt(w.size.dz, 1)} m` : "–"}</span>
+        <span>Kisi reguler</span><span><span class="pill ${i.regular === false ? "warn" : "ok"}">${i.regular === false ? "Tidak reguler" : "OK"}</span></span>
+        <span>Kolom X / Y / Z</span><span>${esc(w.map.x_col || "–")} / ${esc(w.map.y_col || "–")} / ${esc(w.map.z_col || "–")}</span>
+        ${ram ? `<span>Estimasi RAM solver</span><span>${fmt(ram.need_gb, 2)} GB ${ramPill}</span>` : ""}
+        ${ram?.available_gb != null ? `<span>RAM tersedia</span><span>${fmt(ram.available_gb, 1)} GB</span>` : ""}
+      </div>
+      ${ram && !ram.fits ? `<div class="banner bad small" style="margin-top:10px">Model melebihi kapasitas RAM tersedia. Gunakan reblock di Pengaturan Lengkap atau kecilkan area model.</div>` : ""}
+      ${i.regular === false ? `<div class="banner warn small" style="margin-top:10px">Model tidak reguler — gunakan Pengaturan Lengkap untuk reblock sebelum optimasi.</div>` : ""}
+      ${(w.warnings || []).map((x) => `<div class="banner warn small" style="margin-top:8px">${esc(x)}</div>`).join("")}`;
+
+  const p0 = w.products[0];
+  const needsDensity = b && !w.map.density_col;
+  const quickReady = b && (i.regular !== false) && w.map.x_col && w.map.y_col && w.map.z_col && slug()
+    && (w.capacity || w.periods) && w.eco.mining_cost_per_tonne !== ""
+    && (!needsDensity || Number(w.density) > 0)
+    && p0.name && p0.grade_col && Number(p0.price) > 0
+    && Number(w.slope_angle) > 0 && Number(w.slope_angle) < 90
+    && (!ram || ram.fits);
+  const jobRunning = S.job && S.job.project === w.quickProject && S.job.status === "running";
+  const jobError = S.job && S.job.project === w.quickProject && S.job.status === "error";
+  const hasQuickResults = w.quickProject && S.project === w.quickProject && S.results && !jobRunning;
+
+  const paramsCard = b ? `<div class="card" style="margin-top:16px">
+    <div class="cardhead"><h2>2 · Parameter kunci</h2><span class="lbl">cukup untuk estimasi cepat; detail lain dicatat sebagai ASUMSI</span></div>
+    <div class="pgrid">
+      ${fld("Nama produk", `<input type="text" data-on="wset" data-path="products.0.name" value="${esc(p0.name)}" placeholder="mis. SN">`)}
+      ${fld("Kolom kadar", sel("products.0.grade_col", numeric, p0.grade_col, "pilih…"))}
+      ${fld("Basis kadar", sel("eco.grade_basis", ["mass_percent", "volume_percent", "ppm", "gpt", "kgm3", "gm3"], w.eco.grade_basis, null))}
+      ${fld("Harga produk", num("products.0.price", p0.price, "mis. 30000"))}
+      ${fld("Satuan harga", sel("products.0.price_unit", ["t", "kg", "g", "oz", "lb"], p0.price_unit, null))}
+      ${fld("Biaya tambang <span class='muted xs'>USD/t</span>", num("eco.mining_cost_per_tonne", w.eco.mining_cost_per_tonne, "mis. 2.5"))}
+      ${fld("Biaya proses <span class='muted xs'>USD/t</span>", num("eco.processing_cost_per_tonne", w.eco.processing_cost_per_tonne, "0"))}
+      ${fld("Sudut lereng overall <span class='muted xs'>°</span>", num("slope_angle", w.slope_angle, "45"))}
+      ${fld("Kapasitas umpan <span class='muted xs'>t/periode</span>", num("capacity", w.capacity, "mis. 250000"))}
+      ${needsDensity ? fld("Densitas seragam <span class='muted xs'>t/m³</span>", num("density", w.density, "mis. 1.8")) : ""}
+    </div>
+    <div class="row" style="margin-top:16px;gap:10px">
+      <span class="grow small muted">Parameter lain memakai nilai bawaan dan ditandai sebagai ASUMSI di Parameter.</span>
+      <button class="btn primary" data-act="qRun" ${quickReady && !w.busy && !jobRunning ? "" : "disabled"}>${w.busy || jobRunning ? "Optimasi berjalan…" : "Jalankan Optimasi Cepat"}</button>
+    </div>
+  </div>` : "";
+
+  let resultCard = "";
+  if (jobRunning) {
+    const j = S.job;
+    const st = j.stages?.[j.stage] ? tr(j.stages[j.stage]) : "Memproses…";
+    resultCard = `<div class="card" style="margin-top:16px">
+      <div class="cardhead"><h2>3 · Progres optimasi</h2><span class="num small muted">${fmt(j.elapsed, 0)} s · ${fmt(j.fraction * 100, 0)}%</span></div>
+      <div class="small muted" style="margin-bottom:8px">${esc(st)}</div>
+      <div class="bar"><div style="width:${fmt(j.fraction * 100, 0)}%"></div></div>
+    </div>`;
+  } else if (jobError) {
+    resultCard = `<div class="card" style="margin-top:16px"><div class="banner bad small">${esc(S.job.error)}</div></div>`;
+  } else if (hasQuickResults) {
+    const r = S.results, k = r.kpis;
+    resultCard = `<div class="card" style="margin-top:16px">
+      <div class="cardhead"><h2>3 · Ringkasan KPI &amp; Pratinjau 3D</h2><span class="lbl">RF ${fmt(k.final_rf, 2)} · ${k.periods ?? "–"} periode</span></div>
+      <div class="grid g3">
+        ${kpi("NPV rencana", mUSD(k.npv_plan), "jt USD", `diskonto ${pcts(k.discount_rate, 0)}/tahun`, "", "accent")}
+        ${kpi("Nilai tak terdiskonto", mUSD(k.value_undiscounted), "jt USD", `RF ${fmt(k.final_rf, 2)}`)}
+        ${kpi("Rock", mt(k.rock_t), "Mt", "total material tergali")}
+        ${kpi("Umpan (ore)", mt(k.ore_t), "Mt", `strip ratio ${fmt(k.strip_ratio, 2)} t/t`)}
+        ${kpi("Waste", mt(k.waste_t), "Mt", "")}
+        ${kpi("Kedalaman maks", fmt(k.max_depth_m, 0), "m", `crest RL ${fmt(k.crest_rl, 1)} · toe RL ${fmt(k.toe_rl, 1)}`)}
+      </div>
+      <div id="quick-plot3d" style="height:400px;margin-top:16px;border:1px solid var(--line);border-radius:6px"></div>
+      <div class="row" style="margin-top:14px;gap:10px;flex-wrap:wrap">
+        <a class="btn primary" data-go="ringkasan">Buka Ringkasan Lengkap →</a>
+        <a class="btn" data-go="3d">Buka 3D &amp; Penampang →</a>
+        <a class="btn" data-go="parameter">Ubah Parameter Lengkap →</a>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="grid g2">
+    <div class="card">
+      <div class="cardhead"><h2>1 · Sumber data</h2><span class="lbl">sampel atau CSV lokal</span></div>
+      ${fld("Nama proyek", `<input type="text" data-on="wset" data-path="title" value="${esc(w.title)}" placeholder="mis. Quick Pit Blok A">`, slug() ? `folder: projects/${esc(slug())}` : "")}
+      <div class="fld" style="margin-top:12px">
+        <label for="q-sample">Dataset contoh</label>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <select id="q-sample" data-on="qSamplePick" style="flex:1;min-width:0">${sampleOpts || `<option value="">— tidak ada sampel —</option>`}</select>
+          <button class="btn" data-act="qUseSample" ${S.projects.length ? "" : "disabled"}>Muat sampel</button>
+        </div>
+      </div>
+      <div class="drops" style="margin-top:12px">
+        ${drop("block", "Unggah model blok CSV", "CSV (pusat blok, satu baris per blok)", b && `${b.file} · ${fmtInt(i.rows)} blok`)}
+        ${drop("surface", "Topografi (opsional)", "DXF atau CSV XYZ", w.surface && `${w.surface.file}`)}
+      </div>
+      ${uploading}
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>Pra-validasi &amp; Estimasi RAM</h2><span class="lbl">instan sebelum run</span></div>
+      ${precheck}
+    </div>
+  </div>${paramsCard}${resultCard}`;
+}
+
 export function render() {
   if (S.demoMode) return `<div class="page">${pageHead(t("Gunakan data Anda sendiri"), t("Jalankan PitOpt secara lokal untuk mengolah model blok Anda."), "")}
-    <div class="card demo-own-data"><span class="tagc info">${t("DEMO PUBLIK")}</span><h2>${t("Gunakan model blok Anda sendiri")}</h2>
-      <p>${t("Demo ini memakai data sampel sintetis yang sudah tersedia. Demo publik tidak menerima unggahan atau menjalankan optimasi pit strategis baru. Untuk menjaga model privat dan menjalankan optimasi penuh, instal PitOpt di komputer Anda.")}</p>
+    <div class="card demo-own-data"><span class="tagc info">${t("WEB WORKSPACE")}</span><h2>${t("Gunakan model blok Anda sendiri")}</h2>
+      <p>${t("Workspace web ini memakai dataset studi kasus yang sudah dihitung. Unggah data dan optimasi pit baru dijalankan di aplikasi desktop lokal, sehingga block model dan DXF Anda tetap di komputer Anda. Hasil desain wajib ditinjau Competent Person sesuai standar industri.")}</p>
       <ul class="demo-gets"><li>${t("Unggah model blok CSV dan topografi DXF Anda sendiri")}</li><li>${t("Jalankan optimasi pit penuh: shell RAF, pit by pit, pushback, jadwal, sensitivitas")}</li><li>${t("Ekspor Excel, PDF, DXF dan viewer 3D")}</li><li>${t("Gratis dan open source (MIT) — data tidak pernah meninggalkan komputer Anda")}</li></ul>
       <div class="demo-actions"><a class="btn primary" href="${esc(S.demoRepoUrl)}/blob/main/docs/INSTALLATION.md" target="_blank" rel="noopener noreferrer">${t("Panduan instalasi lokal →")}</a><a class="btn" href="${esc(S.demoRepoUrl)}" target="_blank" rel="noopener noreferrer">★ ${t("Star di GitHub")}</a></div>
-      <div class="note demo-install"><b>${t("Mulai cepat · macOS / Linux (Python 3.10+)")}</b><pre class="demo-install-code">git clone ${esc(S.demoRepoUrl)}.git\ncd pitopt\nbash PitOpt.command</pre><span class="small">${t("Instalasi pertama beberapa menit; contoh sintetis sudah dijalankan saat aplikasi terbuka. Windows: lewat WSL, lihat panduan instalasi.")}</span></div>
+      <div class="note demo-install"><b>${t("Mulai cepat · Windows, macOS, Linux (Python 3.10+)")}</b><pre class="demo-install-code">git clone ${esc(S.demoRepoUrl)}.git\ncd pitopt\nPitOpt.bat            # Windows\nbash PitOpt.command   # macOS\nbash scripts/start_ui.sh  # Linux</pre><span class="small">${t("Instalasi pertama beberapa menit; dataset studi kasus sudah dijalankan saat aplikasi terbuka. Panduan lengkap ada di panduan instalasi lokal.")}</span></div>
     </div>
     <div class="card demo-own-data"><h2>${t("Coba workflow data sampel di sini")}</h2><p>${t("Pilih salah satu project sintetis dari menu project. Di Desain Detail, Anda bisa mengubah parameter bench, sektor, dan ramp, lalu generate ulang desain. Perubahan hanya disimpan sementara di memori demo ini; upload data dan optimasi pit strategis baru perlu dijalankan secara lokal.")}</p><a class="btn" href="#/d-generate">${t("Buka Desain Detail →")}</a></div>
   </div>`;
+
+  const modeTabs = `<div class="tabs" role="tablist"><button role="tab" aria-selected="${w.mode === "quick"}" data-act="wMode" data-v="quick" class="${w.mode === "quick" ? "on" : ""}">Estimasi Cepat (1 layar)</button><button role="tab" aria-selected="${w.mode === "full"}" data-act="wMode" data-v="full" class="${w.mode === "full" ? "on" : ""}">Pengaturan Lengkap</button></div>`;
+  if (w.mode === "quick") {
+    return `<div class="page">${pageHead("Estimasi Pit Cepat", "pilih sampel atau unggah CSV, validasi RAM instan, jalankan, dan lihat KPI serta 3D", modeTabs)}
+    ${w.error ? `<div class="banner bad small" style="margin-bottom:12px">${esc(w.error)}</div>` : ""}
+    ${renderQuick()}</div>`;
+  }
+
   const b = w.block, i = b?.info, cols = i?.columns || [], numeric = i?.numeric || [];
   const uploading = w.progress ? `<div class="banner small" style="margin-top:12px">Mengunggah ${esc(w.progress.name)} — ${fmt(w.progress.pct * 100, 0)}%<div class="bar"><div style="width:${w.progress.pct * 100}%"></div></div></div>` : "";
   const step2 = b ? `<div class="card" style="margin-top:16px"><div class="cardhead"><h2>2 · Kolom &amp; ukuran blok</h2><span class="lbl">${fmtInt(i.rows)} blok · ${cols.length} kolom</span></div>
@@ -134,7 +292,7 @@ export function render() {
       ${fld("Kapasitas umpan <span class='muted xs'>t/periode</span>", num("capacity", w.capacity), "Isi ini <b>atau</b> umur tambang; salah satu wajib untuk jadwal.")}${fld("Umur tambang <span class='muted xs'>periode</span>", num("periods", w.periods), "Kapasitas mengikuti umur yang Anda tetapkan.")}${fld("Diskonto <span class='muted xs'>0–1</span>", num("discount_rate", w.discount_rate))}</div></div>` : "";
 
   const ready = b && (w.block.info.regular !== false || w.rb.result) && w.map.x_col && w.map.y_col && w.map.z_col && slug() && (w.capacity || w.periods) && w.eco.mining_cost_per_tonne !== "" && w.products.every((p) => p.name && p.grade_col && p.price);
-  return `<div class="page">${pageHead("Proyek baru dari data Anda", "unggah model blok (dan topografi), petakan kolom, isi ekonomi", "")}
+  return `<div class="page">${pageHead("Proyek baru dari data Anda", "unggah model blok (dan topografi), petakan kolom, isi ekonomi", modeTabs)}
   ${w.error ? `<div class="banner bad small" style="margin-bottom:12px">${esc(w.error)}</div>` : ""}
   <div class="card"><div class="cardhead"><h2>1 · Berkas</h2><span class="lbl">berkas tetap di komputer ini (server lokal)</span></div>
     <div class="pgrid" style="margin-bottom:14px">${fld("Nama proyek", `<input type="text" data-on="wset" data-path="title" value="${esc(w.title)}" placeholder="mis. Tambang Nikel Blok A">`, slug() ? `folder: projects/${esc(slug())}` : "")}</div>
@@ -144,7 +302,31 @@ export function render() {
   ${b ? `<div class="row" style="margin-top:16px;gap:10px"><span class="grow small muted">Tidak ada nilai yang diisi otomatis tanpa tanda: yang tidak Anda ubah muncul sebagai ASUMSI di layar Parameter.</span><button class="btn primary" data-act="wCreate" ${ready && !w.busy ? "" : "disabled"}>${w.busy ? "Membuat…" : "Buat proyek"}</button></div>` : ""}</div>`;
 }
 
-export function mount(root) { if (w.error) root.querySelector(".page")?.scrollIntoView(); }
+const T = (m) => m[0].map((_, j) => m.map((row) => row[j]));
+async function plotQuick3D(root) {
+  const el = root.querySelector("#quick-plot3d");
+  if (!el) return;
+  try {
+    const g = await ensureGrids3d();
+    if (!g) return;
+    const P = await loadPlotly();
+    const surf = (z, color, name, opacity = 1) => ({ type: "surface", x: g.x, y: g.y, z: T(z), name, showscale: false, opacity, colorscale: [[0, color], [1, color]], hoverinfo: "name+z", lighting: { ambient: 0.65, diffuse: 0.6 } });
+    const data = [surf(g.topo, "#6B7A3A", t("Topografi"), 0.85), surf(g.layers.face, "#8A6A3B", t("Face position"), 1)];
+    const dark = document.documentElement.dataset.theme === "dark";
+    const xr = g.x[g.x.length - 1] - g.x[0], yr = g.y[g.y.length - 1] - g.y[0], zs = g.topo.flat().filter((v) => v != null);
+    const zr = Math.max(...zs) - Math.min(...zs) || 1;
+    await P.react(el, data, {
+      margin: { l: 0, r: 0, t: 0, b: 0 }, paper_bgcolor: "rgba(0,0,0,0)", font: { color: dark ? "#ddd" : "#14181D" },
+      scene: { aspectmode: "manual", aspectratio: { x: 1, y: yr / xr, z: (zr / xr) * S.ve }, xaxis: { title: "E" }, yaxis: { title: "N" }, zaxis: { title: "RL" } },
+      showlegend: false,
+    }, { responsive: true, displaylogo: false });
+  } catch (e) { toast(e.message); }
+}
+
+export function mount(root) {
+  if (w.error) root.querySelector(".page")?.scrollIntoView();
+  if (w.mode === "quick" && w.quickProject && S.project === w.quickProject && S.results) plotQuick3D(root);
+}
 
 function setPath(path, value) {
   const parts = path.split(".");
@@ -152,6 +334,86 @@ function setPath(path, value) {
   for (const k of parts.slice(0, -1)) node = node[k];
   node[parts[parts.length - 1]] = value;
 }
+
+function buildSpec() {
+  const m = w.map, size = w.size;
+  const block_model = { crs: w.crs || null, vertical_datum: w.vertical_datum || null, volume_col: w.volume_col || null, file: w.block.file, x_col: m.x_col, y_col: m.y_col, z_col: m.z_col, domain_col: m.domain_col || null, class_col: m.class_col || null, density_col: m.density_col || null, density: w.density, include_classes: w.include_classes, ore_domains: w.ore_domains };
+  for (const k of ["dx", "dy", "dz"]) { if (m[`${k}_col`]) block_model[`${k}_col`] = m[`${k}_col`]; else block_model[k] = size[k]; }
+  return {
+    title: w.title, slug: slug(), block_model,
+    economics: { ...w.eco, products: w.products.map((p) => ({ ...p, density: p.density || undefined })) },
+    surface: w.surface ? { file: w.surface.file, format: w.surface.format, ...(w.surface.map || {}) } : null,
+    slope_angle: w.slope_angle, capacity: w.capacity || null, periods: w.periods || null,
+    discount_rate: w.discount_rate, bench_height: w.bench_height, bench_face_angle: w.bench_face_angle, touched: [...w.touched],
+  };
+}
+
+A.wMode = (el) => { w.mode = el.dataset.v; notify(); };
+A.qSamplePick = (el) => { w.sampleSource = el.value; };
+A.qUseSample = async () => {
+  const src = w.sampleSource || document.getElementById("q-sample")?.value || S.projects[0]?.id;
+  if (!src) return toast("Pilih dataset contoh dulu.");
+  w.sampleSource = src;
+  const target = `quick_${src}_${Date.now().toString(36).slice(-4)}`;
+  w.title = `Quick ${src}`;
+  w.slug = target;
+  w.error = null; w.quickProject = null;
+  try {
+    const res = await api("/api/quick/sample", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source_project: src, target_project: target }) });
+    const d = res.defaults || {}, bm = d.block_model || {}, eco = d.economics || {};
+    w.block = { file: res.file, info: res.inspect };
+    w.surface = res.surface || null;
+    w.map = {
+      x_col: bm.x_col || res.inspect.guess?.x || "", y_col: bm.y_col || res.inspect.guess?.y || "", z_col: bm.z_col || res.inspect.guess?.z || "",
+      density_col: bm.density_col || res.inspect.guess?.density || "", domain_col: bm.domain_col || res.inspect.guess?.domain || "",
+      class_col: bm.class_col || res.inspect.guess?.class || "", dx_col: "", dy_col: "", dz_col: "",
+    };
+    w.size = { dx: bm.dx || res.inspect.spacing?.x || "", dy: bm.dy || res.inspect.spacing?.y || "", dz: bm.dz || res.inspect.spacing?.z || "" };
+    w.density = bm.density ?? "";
+    w.include_classes = bm.include_classes || [];
+    w.ore_domains = bm.ore_domains || [];
+    w.eco = {
+      grade_basis: eco.grade_basis || "mass_percent",
+      mining_recovery: eco.mining_recovery ?? 1, dilution: eco.dilution ?? 0, royalty_rate: eco.royalty_rate ?? 0,
+      mining_cost_per_tonne: eco.mining_cost_per_tonne ?? "", processing_cost_per_tonne: eco.processing_cost_per_tonne ?? 0,
+    };
+    w.products = (eco.products?.length ? eco.products : fresh().products).map((p) => ({
+      name: p.name || "", grade_col: p.grade_col || "", price: p.price ?? "", price_unit: p.price_unit || "t",
+      plant_recovery: p.plant_recovery ?? 1, processing_cost_per_tonne: p.processing_cost_per_tonne ?? 0,
+      selling_cost_per_tonne: p.selling_cost_per_tonne ?? 0, density: p.density ?? "",
+    }));
+    w.slope_angle = d.slope_angle ?? 45;
+    w.capacity = d.capacity ?? "";
+    w.periods = d.periods ?? "";
+    w.discount_rate = d.discount_rate ?? 0.1;
+    w.bench_height = d.bench_height || w.size.dz || "";
+    w.bench_face_angle = d.bench_face_angle ?? 65;
+    w.warnings = [...(res.inspect.warnings || [])];
+    w.touched = new Set(["slope_angle", "mining_cost_per_tonne", "processing_cost_per_tonne"]);
+    if (w.capacity) w.touched.add("capacity");
+    if (w.periods) w.touched.add("periods");
+    if (w.density) w.touched.add("density");
+    checkExtents();
+    await refreshRam();
+    notify();
+  } catch (e) { w.error = e.message; notify(); }
+};
+
+A.qRun = async () => {
+  w.busy = true; w.error = null; notify();
+  try {
+    const r = await api("/api/create-project", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildSpec()) });
+    await loadProjects2();
+    await select(r.project, r.scenario);
+    w.quickProject = r.project;
+    const job = await api("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: r.project, scenario: r.scenario, overrides: {}, save_as: null }) });
+    S.job = { id: job.job, project: r.project, sourceScenario: r.scenario, selectionVersion: S.selectionVersion, status: "running", scenario: job.scenario, log: [], stage: 0, stages: [], fraction: 0, next: 0, elapsed: 0 };
+    w.busy = false;
+    notify();
+    pollJob();
+  } catch (e) { w.busy = false; w.error = e.message; notify(); }
+};
+
 A.wfile = (el) => { const f = el.files[0]; if (f) upload(f, el.dataset.kind); };
 A.wset = async (el) => {
   const path = el.dataset.path;
@@ -163,6 +425,7 @@ A.wset = async (el) => {
   if (touch) w.touched.add(touch);
   if (path === "map.domain_col") { w.ore_domains = []; await loadUniques("domain_col"); }
   if (path === "map.class_col") { w.include_classes = []; await loadUniques("class_col"); }
+  if (w.mode === "quick" && (path === "slope_angle" || path.startsWith("size."))) await refreshRam();
   notify();
 };
 A.wlist = (el) => { const l = w[el.dataset.list], v = el.dataset.v; el.checked ? l.push(v) : l.splice(l.indexOf(v), 1); notify(); };
@@ -170,14 +433,8 @@ A.wAddProduct = () => { w.products.push({ name: "", grade_col: "", price: "", pr
 A.wDelProduct = (el) => { w.products.splice(+el.dataset.n, 1); notify(); };
 A.wCreate = async () => {
   w.busy = true; w.error = null; notify();
-  const m = w.map, size = w.size;
-  const block_model = { crs: w.crs || null, vertical_datum: w.vertical_datum || null, volume_col: w.volume_col || null, file: w.block.file, x_col: m.x_col, y_col: m.y_col, z_col: m.z_col, domain_col: m.domain_col || null, class_col: m.class_col || null, density_col: m.density_col || null, density: w.density, include_classes: w.include_classes, ore_domains: w.ore_domains };
-  for (const k of ["dx", "dy", "dz"]) { if (m[`${k}_col`]) block_model[`${k}_col`] = m[`${k}_col`]; else block_model[k] = size[k]; }
-  const spec = { title: w.title, slug: slug(), block_model, economics: { ...w.eco, products: w.products.map((p) => ({ ...p, density: p.density || undefined })) },
-    surface: w.surface ? { file: w.surface.file, format: w.surface.format, ...(w.surface.map || {}) } : null,
-    slope_angle: w.slope_angle, capacity: w.capacity || null, periods: w.periods || null, discount_rate: w.discount_rate, bench_height: w.bench_height, bench_face_angle: w.bench_face_angle, touched: [...w.touched] };
   try {
-    const r = await api("/api/create-project", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(spec) });
+    const r = await api("/api/create-project", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildSpec()) });
     await loadProjects2(); await select(r.project, r.scenario);
     w = fresh(); toast("Proyek dibuat. Periksa parameter lalu jalankan optimasi."); location.hash = "#/parameter";
   } catch (e) { w.busy = false; w.error = e.message; notify(); }

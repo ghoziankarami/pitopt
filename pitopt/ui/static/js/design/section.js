@@ -2,6 +2,7 @@
 // block model one cell thick, the ground, and where the road crosses. Drawn at any vertical exaggeration; the scale
 // is written on the drawing itself, so a picture taken from it can never be read as 1:1 when it is not.
 import { fmt } from "../util.js";
+import { t } from "../i18n.js";
 import { blockColour, classColour, css, rangeOf } from "./plan.js";
 
 const norm = (a) => ((a % 360) + 360) % 360;
@@ -66,11 +67,11 @@ export function drawSection(canvas, sec, topo, { ve, mode, sectors, centre, p1, 
   for (let z = Math.ceil(zmin / step) * step; z < zmax; z += step) { c.beginPath(); c.moveTo(padL, Y(z)); c.lineTo(width - padR, Y(z)); c.stroke(); c.fillText(`+${fmt(z, 0)}`, 4, Y(z) + 3); }
   const dstep = Math.round(sec.length / 6 / 50) * 50 || 50;
   for (let d = 0; d <= sec.length; d += dstep) c.fillText(fmt(d, 0), X(d) - 8, h - padB + 14);
-  c.fillText("jarak sepanjang A–A′ (m)", padL, h - 6);
+  c.fillText(t("jarak sepanjang A–A′ (m)"), padL, h - 6);
   const a = sectorAt(sectors, norm(bearing(centre, p1))), z = sectorAt(sectors, norm(bearing(centre, p2)));
   c.fillStyle = ink; c.font = "600 11px 'IBM Plex Sans', sans-serif";
-  c.fillText(`A  ${a} ${fmt(bearing(centre, p1), 0)}°`, padL + 4, 14); const t = `${z} ${fmt(bearing(centre, p2), 0)}°  A′`; c.fillText(t, width - padR - c.measureText(t).width - 4, 14);
-  const badge = ve === 1 ? "1:1 · VE 1,0×" : `VE ${fmt(ve, 1)}×`, bw = c.measureText(badge).width + 16;
+  c.fillText(`A  ${a} ${fmt(bearing(centre, p1), 0)}°`, padL + 4, 14); const secEnd = `${z} ${fmt(bearing(centre, p2), 0)}°  A′`; c.fillText(secEnd, width - padR - c.measureText(secEnd).width - 4, 14);
+  const badge = ve === 1 ? `1:1 · VE ${fmt(1, 1)}×` : `VE ${fmt(ve, 1)}×`, bw = c.measureText(badge).width + 16;
   const bx = padL + (width - padL - padR - bw) / 2;
   c.fillStyle = ve === 1 ? css("--good") : ink; c.fillRect(bx, 4, bw, 20);
   c.fillStyle = css("--bg"); c.fillText(badge, bx + 8, 18);

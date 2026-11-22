@@ -103,7 +103,13 @@ def build_design(blocks: pd.DataFrame, in_pit: np.ndarray, cfg: ProjectConfig, r
     floor_rl, crest_rl = floor_level - dz / 2.0, crest_level + dz / 2.0
     limits = detail.limits
 
-    sectors, warnings = resolve_sectors(design, cfg.slope.overall_angle_deg)
+    sectors, warnings = resolve_sectors(
+        design,
+        cfg.slope.overall_angle_deg,
+        domain_angles=cfg.slope.domain_angles,
+        blocks=blocks,
+        in_pit=in_pit,
+    )
     anchor_level, anchor_rl = (floor_level, floor_rl) if detail.anchor == "floor" else (crest_level, crest_rl)
     tell("anchor", anchor=detail.anchor, floor_rl=floor_rl, crest_rl=crest_rl)
     outline, smoothing = smooth_outline(level_footprint(blocks, in_pit, anchor_level), detail.smoothing,

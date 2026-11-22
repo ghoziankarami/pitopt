@@ -504,3 +504,71 @@ def test_a_shell_that_balloons_at_mid_height_and_pinches_at_both_ends_is_flagged
     fit = next(f for f in d.validation.findings if f.check == "shape_fit")
     assert fit.status in (WARNING, BLOCKED) and fit.value < 1.0
     assert d.reconciliation.change_pct("rock_tonnes") < -30.0                    # the design misses most of the middle bulge
+
+
+# ── 3-bench wall diagnostic vs stepped floor raster ─────────────────────────────────────────────────────────────
+def _cone_block_model(overall_deg: float, bench_height: float, face_angle_deg: float, cell: float, stepped_floor: bool = False):
+    from pitopt.core.design import _floor_raster, bench_geometry, design_grid, face_position, pit_shell
+
+    nx = ny = 24
+    nz = 8
+    dx = dy = dz = 10.0
+    cx = cy = 120.0
+    gx, gy, gk = np.meshgrid(np.arange(nx), np.arange(ny), np.arange(nz), indexing="ij")
+    x = (gx.ravel() + 0.5) * dx
+    y = (gy.ravel() + 0.5) * dy
+    z = (gk.ravel() + 0.5) * dz
+    r = np.hypot(x - cx, y - cy)
+    if stepped_floor:
+        in_pit = (r <= 20.0) | ((gk.ravel() >= 1) & (r <= 40.0))
+    else:
+        in_pit = r <= 20.0
+    blocks = pd.DataFrame({
+        "x": x, "y": y, "z": z, "dx": dx, "dy": dy, "dz": dz,
+        "gi": gx.ravel(), "gj": gy.ravel(), "gk": gk.ravel(),
+        "bench": gk.ravel() + 1, "in_pit": in_pit,
+        "destination": 1, "rock_tonnes": 1000.0, "ore_tonnes": 500.0, "value": 100.0,
+    })
+    geom = bench_geometry(overall_deg, bench_height, face_angle_deg, None)
+    grid = design_grid(blocks, None, cell)
+    shell = pit_shell(blocks, in_pit, grid, geom)
+    face = face_position(shell, grid)
+    floor = _floor_raster(blocks, in_pit, grid)
+    return blocks, geom, grid, face, floor
+
+
+def test_pure_42_deg_cone_wall_3_bench_diagnostic_within_limit():
+    from pitopt.core.verify import design_check
+
+    _blocks, geom, grid, face, floor = _cone_block_model(42.0, 10.0, 55.0, cell=2.0, stepped_floor=False)
+    res = design_check(face, 2.0, geom.face_angle_deg, geom.overall_angle_deg, geom.bench_run, floor=floor, topo=grid.topo)
+    assert "steepest_over_3_benches_deg" in res
+    assert res["steepest_over_3_benches_deg"] > 42.5
+    assert 41.5 <= res["steepest_wall_over_3_benches_deg"] <= 42.5
+
+
+def test_stepped_floor_transition_does_not_inflate_3_bench_wall_diagnostic():
+    from pitopt.core.verify import design_check
+
+    _blocks, geom, grid, face, floor = _cone_block_model(42.0, 10.0, 55.0, cell=2.0, stepped_floor=True)
+    res = design_check(face, 2.0, geom.face_angle_deg, geom.overall_angle_deg, geom.bench_run, floor=floor, topo=grid.topo)
+    assert res["steepest_over_3_benches_deg"] > 42.5
+    assert res["steepest_wall_over_3_benches_deg"] <= 42.5
+    assert res["steepest_wall_over_3_benches_deg"] < res["steepest_over_3_benches_deg"]
+
+
+def test_run_all_reports_both_3_bench_metrics_and_detects_steep_wall():
+    from pitopt.core.design import bench_geometry, face_position, pit_shell
+    from pitopt.core.verify import run_all
+
+    blocks, _geom42, grid, _face42, _floor = _cone_block_model(42.0, 10.0, 55.0, cell=2.0, stepped_floor=False)
+    steep_geom = bench_geometry(50.0, 10.0, 65.0, None)
+    steep_face = face_position(pit_shell(blocks, blocks["in_pit"].to_numpy(), grid, steep_geom), grid)
+    cfg = ProjectConfig.from_yaml("projects/example_tin/project.yaml")
+    cfg.slope.overall_angle_deg = 42.0
+    cfg.slope.domain_angles = {}
+
+    out = run_all(cfg, blocks, None, face=steep_face, cell=2.0, geometry=bench_geometry(42.0, 10.0, 55.0, None))
+    d = out["design"]
+    assert "steepest_over_3_benches_deg" in d
+    assert d["steepest_wall_over_3_benches_deg"] >= 49.0

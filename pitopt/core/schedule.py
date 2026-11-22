@@ -249,3 +249,45 @@ def schedule_summary(schedule: pd.DataFrame) -> dict:
         "waste_tonnes": float(schedule["waste_tonnes"].sum()),
         "volume": float(schedule["volume"].sum()),
     }
+
+
+def schedule_design(
+    blocks: pd.DataFrame,
+    in_design: np.ndarray,
+    ore_capacity: float,
+    total_capacity: float | None = None,
+    discount_rate: float = 0.10,
+    max_periods: int = 100,
+    capacity_basis: str = "tonnes",
+) -> pd.DataFrame:
+    """Schedule blocks inside the practical bench design (`in_design`).
+
+    Blocks inside `in_pit` keep their pushback/shell order; expanded design blocks
+    outside `in_pit` (stage == 0) are placed in a final stage and ordered bench-downward
+    so slope precedence and plant/movement capacities are respected.
+    """
+    mask = np.asarray(in_design, dtype=bool)
+    if not mask.any():
+        raise ValueError("Design mask contains no blocks")
+    sub = blocks[mask]
+    stage_col = next((c for c in ("pushback", "shell") if c in sub.columns and (sub[c] > 0).any()), None)
+    if stage_col is not None:
+        raw = sub[stage_col].to_numpy()
+        stage = np.where(raw > 0, raw, int(raw.max()) + 1)
+    else:
+        stage = np.ones(len(sub), dtype=int)
+    order = (
+        sub.assign(_stage=stage)
+        .sort_values(["_stage", "bench", "x", "y"], ascending=[True, False, True, True], kind="stable")
+        .index.to_numpy()
+    )
+    return schedule_production(
+        blocks,
+        mask,
+        ore_capacity,
+        total_capacity=total_capacity,
+        discount_rate=discount_rate,
+        max_periods=max_periods,
+        capacity_basis=capacity_basis,
+        order=order,
+    )

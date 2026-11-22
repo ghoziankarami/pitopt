@@ -413,3 +413,64 @@ def test_the_slope_criterion_makes_the_ira_equal_the_optimiser_angle(example_she
     cfg.design.detail = DesignDetailConfig(enabled=True, berm=BermConfig(method="slope"), ramp=RampConfig(width_m=15.0))
     design = build_design(blocks, in_pit, cfg)
     assert design.angles[0].ira_deg == pytest.approx(cfg.slope.overall_angle_deg, abs=1e-9)
+
+
+def test_domain_geometries_computes_per_domain_berm_widths_from_cot_difference():
+    from pitopt.core.design import domain_geometries
+
+    geoms = domain_geometries(
+        overall_angle_deg=45.0,
+        bench_height=10.0,
+        face_angle_deg=70.0,
+        berm_width=None,
+        domain_angles={"weak": 35.0, "strong": 50.0},
+    )
+    expected_weak = 10.0 * (1.0 / math.tan(math.radians(35.0)) - 1.0 / math.tan(math.radians(70.0)))
+    expected_strong = 10.0 * (1.0 / math.tan(math.radians(50.0)) - 1.0 / math.tan(math.radians(70.0)))
+    assert geoms["weak"].berm_width == pytest.approx(expected_weak)
+    assert geoms["strong"].berm_width == pytest.approx(expected_strong)
+    assert geoms["weak"].berm_width > geoms["strong"].berm_width
+
+
+def test_pit_shell_with_domain_geometries_dilates_gentler_domain_wider():
+    from pitopt.core.design import design_grid, domain_geometries, pit_shell
+
+    rows = []
+    for gi, x in enumerate(np.arange(-100.0, 101.0, 20.0)):
+        for gj, y in enumerate(np.arange(-100.0, 101.0, 20.0)):
+            dom = "weak" if y > 0 else "strong"
+            rows.append({"x": x, "y": y, "z": 0.0, "gi": gi, "gj": gj, "dx": 20.0, "dy": 20.0, "dz": 10.0, "domain": dom})
+    blocks = pd.DataFrame(rows)
+    mined = ((blocks["x"] == 0.0) & (blocks["y"] == 40.0)) | ((blocks["x"] == 0.0) & (blocks["y"] == -40.0))
+    grid = design_grid(blocks, elevation=lambda x, y: np.full_like(x, 100.0, dtype=float), cell=2.0)
+    default_geom = bench_geometry(45.0, 10.0, 70.0, None)
+    dom_geoms = domain_geometries(45.0, 10.0, 70.0, None, {"weak": 35.0, "strong": 50.0})
+    shell = pit_shell(blocks, mined.to_numpy(), grid, default_geom, domain_geometries=dom_geoms)
+
+    # At x=0, 20 m further out from each floor block edge (y=70 vs y=-70): gentler "weak" wall is lower
+    ix0 = int(np.argmin(np.abs(grid.xs - 0.0)))
+    iy_weak = int(np.argmin(np.abs(grid.ys - 70.0)))
+    iy_strong = int(np.argmin(np.abs(grid.ys - (-70.0))))
+    assert shell[ix0, iy_weak] < shell[ix0, iy_strong]
+
+
+def test_resolve_sectors_maps_domain_angles_and_respects_manual_override():
+    d = detail(H=10.0, face=70.0, berm=BermConfig(method="slope"))
+    rows = []
+    for y in (-20.0, 20.0):
+        for x in (-20.0, 20.0):
+            rows.append({"x": x, "y": y, "z": 0.0, "domain": "weak" if y > 0 else "strong"})
+    blocks = pd.DataFrame(rows)
+    in_pit = np.ones(len(blocks), dtype=bool)
+
+    sectors, _ = resolve_sectors(d, 45.0, domain_angles={"weak": 35.0, "strong": 50.0}, blocks=blocks, in_pit=in_pit)
+    by_name = {s.name: s for s in sectors}
+    assert by_name["weak"].berm_width == pytest.approx(10.0 * (1.0 / math.tan(math.radians(35.0)) - 1.0 / math.tan(math.radians(70.0))))
+    assert by_name["strong"].berm_width == pytest.approx(10.0 * (1.0 / math.tan(math.radians(50.0)) - 1.0 / math.tan(math.radians(70.0))))
+    assert by_name["weak"].berm_width > by_name["strong"].berm_width
+
+    manual = detail(H=10.0, face=70.0, berm=BermConfig(method="slope"),
+                    sectors=[SectorConfig(name="Manual", azimuth_from=0, azimuth_to=360)])
+    manual_sectors, _ = resolve_sectors(manual, 45.0, domain_angles={"weak": 35.0, "strong": 50.0}, blocks=blocks, in_pit=in_pit)
+    assert [s.name for s in manual_sectors] == ["Manual"]
+    assert manual_sectors[0].ira_deg == pytest.approx(45.0)

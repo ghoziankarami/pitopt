@@ -10,4 +10,4 @@ from .config import ProjectConfig
 from .pipeline import PitResult, run
 
 __all__ = ["ProjectConfig", "PitResult", "run"]
-__version__ = "0.4.0"
+__version__ = "1.0.0"

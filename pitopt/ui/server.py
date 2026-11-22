@@ -22,6 +22,7 @@ import math
 import mimetypes
 import os
 import re
+import shutil
 import tempfile
 import threading
 import time
@@ -63,6 +64,10 @@ STAGES = [
 
 MAX_UPLOAD = 4 * 2**30
 MAX_JSON_BODY = 256 * 1024
+
+
+class PayloadTooLarge(Exception):
+    """Raised when Content-Length exceeds the configured request limit."""
 
 DEMO_REPO_URL = "https://github.com/ghoziankarami/pitopt"
 
@@ -122,7 +127,7 @@ class App:
     # ── discovery ──
     def scenario_files(self, project: str) -> list[Path]:
         folder = self._inside(self.projects_dir / project)
-        return sorted(p for p in folder.glob("*.yaml") if p.is_file())
+        return sorted(p for p in folder.glob("*.yaml") if p.is_file() and not p.name.startswith("."))
 
     def list_projects(self) -> list[dict]:
         out = []
@@ -132,10 +137,10 @@ class App:
             scenarios = []
             title = folder.name
             order = 100
-            for yml in sorted(folder.glob("*.yaml")):
+            for yml in sorted(p for p in folder.glob("*.yaml") if not p.name.startswith(".")):
                 try:
-                    raw = yaml.safe_load(yml.read_text()) or {}
-                except yaml.YAMLError:
+                    raw = yaml.safe_load(yml.read_text(encoding="utf-8")) or {}
+                except (yaml.YAMLError, UnicodeDecodeError):
                     continue
                 if "block_model" not in raw:
                     continue
@@ -207,11 +212,12 @@ class App:
         out = (yml.parent / raw.get("output", {}).get("directory", "outputs")).resolve()
         return self._inside(out), (raw.get("project", {}) or {}).get("name", "pit")
 
-    def _inside(self, path: Path) -> Path:
-        path = path.resolve()
-        if self.root not in path.parents and path != self.root:
-            raise PermissionError(f"path di luar folder proyek: {path}")
-        return path
+    def _inside(self, path: Path, base: Path | None = None) -> Path:
+        anchor = (base or self.root).resolve()
+        resolved = path.resolve()
+        if not resolved.is_relative_to(anchor):
+            raise PermissionError(f"path di luar folder proyek: {resolved}")
+        return resolved
 
     # ── configuration ──
     def resolved(self, project: str, scenario: str, overrides: dict | None = None) -> dict:
@@ -246,7 +252,10 @@ class App:
             cfg = ProjectConfig.from_yaml(str(tmp))
             for source in (cfg.block_model.path, cfg.surface.path):
                 if source:
-                    self._inside(Path(source))
+                    src_path = Path(source)
+                    self._inside(src_path)
+                    if src_path.is_symlink() and not src_path.resolve().is_relative_to(yml.parent.resolve()):
+                        raise PermissionError(f"symlink keluar folder proyek tidak diizinkan: {src_path.name}")
             return cfg
         finally:
             tmp.unlink(missing_ok=True)
@@ -386,6 +395,8 @@ class App:
         name = (name or "").strip()
         if not name:
             raise ValueError("nama tidak boleh kosong")
+        if project in self.demo_projects and scenario is None:
+            raise PermissionError(f"proyek contoh '{project}' dilindungi dan tidak dapat diubah namanya")
         self._guard_idle(project, scenario)
         targets = [self._inside(self.projects_dir / project / f"{scenario}.yaml")] if scenario else self.scenario_files(project)
         for yml in targets:
@@ -419,6 +430,9 @@ class App:
 
     def delete(self, project: str, scenario: str | None, confirm: str) -> dict:
         import shutil
+
+        if project in self.demo_projects and scenario is None:
+            raise PermissionError(f"proyek contoh '{project}' dilindungi dan tidak dapat dihapus")
 
         expected = scenario or project
         if confirm != expected:
@@ -520,6 +534,60 @@ class App:
             target.unlink(missing_ok=True)
             raise
         return {"project": slug, "scenario": "project"}
+
+    def prepare_quick_sample(self, source_project: str, target_project: str) -> dict:
+        """Copy a bundled/existing project's block model (& surface) into a quick project folder and return inspect + defaults."""
+        from . import onboard
+
+        files = self.scenario_files(source_project)
+        if not files:
+            raise FileNotFoundError(f"proyek sumber tidak memiliki skenario: {source_project}")
+        scen = "project" if any(f.stem == "project" for f in files) else files[0].stem
+        raw, yml = self.load_raw(source_project, scen)
+        bm_cfg = raw.get("block_model") or {}
+        bm_src = self._inside(yml.parent / bm_cfg["path"])
+        slug = onboard.slugify(target_project)
+        dest_data = self._inside(self.projects_dir / slug / "data")
+        dest_data.mkdir(parents=True, exist_ok=True)
+        bm_dest = dest_data / onboard.safe_name(bm_src.name)
+        shutil.copy2(bm_src, bm_dest)
+        bm_info = onboard.inspect_file(bm_dest)
+
+        surf_payload = None
+        surf_cfg = raw.get("surface") or {}
+        if surf_cfg.get("path"):
+            surf_src = self._inside(yml.parent / surf_cfg["path"])
+            if surf_src.exists():
+                surf_dest = dest_data / onboard.safe_name(surf_src.name)
+                shutil.copy2(surf_src, surf_dest)
+                surf_info = onboard.inspect_file(surf_dest)
+                surf_payload = {"file": surf_dest.name, "info": surf_info, "format": surf_info.get("format", surf_cfg.get("format", "dxf"))}
+                if surf_payload["format"] == "csv":
+                    surf_payload["map"] = {k: surf_cfg.get(k, "") for k in ("x_col", "y_col", "z_col")}
+
+        eco = raw.get("economics") or {}
+        sched = raw.get("schedule") or {}
+        slope = raw.get("slope") or {}
+        design = raw.get("design") or {}
+        defaults = {
+            "block_model": {k: bm_cfg.get(k) for k in ("x_col", "y_col", "z_col", "dx", "dy", "dz", "density", "density_col", "domain_col", "class_col", "include_classes", "ore_domains") if bm_cfg.get(k) is not None},
+            "economics": {
+                "grade_basis": eco.get("grade_basis", "mass_percent"),
+                "mining_recovery": eco.get("mining_recovery", 1),
+                "dilution": eco.get("dilution", 0),
+                "royalty_rate": eco.get("royalty_rate", 0),
+                "mining_cost_per_tonne": eco.get("mining_cost_per_tonne", ""),
+                "processing_cost_per_tonne": eco.get("processing_cost_per_tonne", 0),
+                "products": eco.get("products") or [],
+            },
+            "slope_angle": slope.get("overall_angle_deg", 45),
+            "capacity": sched.get("ore_capacity") or "",
+            "periods": sched.get("periods") or "",
+            "discount_rate": sched.get("discount_rate", 0.1),
+            "bench_height": design.get("bench_height") or bm_cfg.get("dz") or "",
+            "bench_face_angle": design.get("bench_face_angle_deg", 65),
+        }
+        return {"project": slug, "file": bm_dest.name, "inspect": bm_info, "surface": surf_payload, "defaults": defaults}
 
     # ── sections ──
     def section(self, project: str, scenario: str, p1: tuple[float, float], p2: tuple[float, float], layers: list[str]) -> dict:
@@ -623,6 +691,8 @@ def make_handler(app: App):
             self.send_header("Content-Length", str(size))
             if download:
                 self.send_header("Content-Disposition", f'attachment; filename="{download}"')
+            elif path.name == "plotly.min.js" or path.suffix in (".woff2", ".webp"):
+                self.send_header("Cache-Control", "public, max-age=604800")  # large, versioned-by-release assets
             elif path.suffix in (".css", ".js", ".html"):
                 self.send_header("Cache-Control", "no-cache")
             self.end_headers()
@@ -632,7 +702,9 @@ def make_handler(app: App):
 
         def _body(self) -> dict:
             length = int(self.headers.get("Content-Length") or 0)
-            if not 0 <= length <= MAX_JSON_BODY:
+            if length < 0:
+                raise ValueError("Content-Length tidak valid")
+            if length > MAX_JSON_BODY:
                 raise ValueError("JSON body must be at most 256 KiB")
             def invalid_constant(value):
                 raise ValueError(f"non-finite JSON value: {value}")
@@ -646,12 +718,20 @@ def make_handler(app: App):
             from . import onboard
 
             length = int(self.headers.get("Content-Length") or 0)
-            if length <= 0 or length > MAX_UPLOAD:
+            if length <= 0:
                 raise ValueError(f"ukuran berkas harus 1 B – {MAX_UPLOAD // 2**30} GB")
+            if length > MAX_UPLOAD:
+                raise PayloadTooLarge(f"ukuran berkas harus 1 B – {MAX_UPLOAD // 2**30} GB")
+            slug = onboard.slugify(q["project"])
+            if slug in app.demo_projects:
+                raise PermissionError(f"proyek contoh '{slug}' dilindungi dari unggahan timpa")
             name = onboard.safe_name(q["name"])
-            folder = app._inside(app.projects_dir / onboard.slugify(q["project"]) / "data")
+            proj_dir = app._inside(app.projects_dir / slug)
+            folder = app._inside(proj_dir / "data", base=proj_dir)
             folder.mkdir(parents=True, exist_ok=True)
             target = folder / name
+            if target.is_symlink():
+                raise PermissionError(f"symlink tidak diizinkan: {target.name}")
             left = length
             # Validate a complete staged upload before replacing a valid source.
             # Keep the suffix so DXF/CSV inspection uses the correct reader.
@@ -732,8 +812,8 @@ def make_handler(app: App):
             q = {k: v[0] for k, v in parse_qs(url.query).items()}
             try:
                 if url.path == "/api/meta":
-                    return self._json({"demo": app.demo_mode, "repo_url": DEMO_REPO_URL,
-                                       "default_project": os.environ.get("PITOPT_DEFAULT_PROJECT") if app.demo_mode else None})
+                    return self._json({"demo": app.demo_mode, "repo_url": DEMO_REPO_URL, "version": __import__("pitopt").__version__,
+                                       "default_project": (os.environ.get("PITOPT_DEFAULT_PROJECT") or "porphyry_synthetic") if app.demo_mode else None})
                 if app.demo_mode and q.get("project") and q["project"] not in app.demo_projects:
                     return self._json({"error": "proyek tidak tersedia di demo publik"}, 404)
                 if app.demo_mode and url.path in {"/api/package", "/api/delete-preview", "/api/inspect", "/api/uniques"}:
@@ -744,7 +824,16 @@ def make_handler(app: App):
                     path = app.results_path(q["project"], q["scenario"])
                     if not path or not path.exists():
                         return self._json({"error": "belum ada hasil untuk skenario ini"}, 404)
-                    return self._json(app.read_results(q["project"], q["scenario"]))
+                    doc = app.read_results(q["project"], q["scenario"])
+                    # 3D grids are ~97% of the payload; the 3D view fetches them lazily from /api/grids3d.
+                    doc["has_grids3d"] = bool(doc.pop("grids3d", None))
+                    return self._json(doc)
+                if url.path == "/api/grids3d":
+                    g = app.read_results(q["project"], q["scenario"]).get("grids3d")
+                    if g:  # whole-metre elevations are plenty for the 3D view and cut the payload by ~30%
+                        rnd = lambda m: [[None if v is None else round(v) for v in row] for row in m]  # noqa: E731
+                        g = {**g, "topo": rnd(g["topo"]), "layers": {k: rnd(v) for k, v in g["layers"].items()}}
+                    return self._json(g)
                 if url.path == "/api/config":
                     raw, _ = app.load_raw(q["project"], q["scenario"])
                     return self._json({"raw": raw, **app.resolved(q["project"], q["scenario"])})
@@ -804,7 +893,10 @@ def make_handler(app: App):
                     import plotly
 
                     return self._file(Path(plotly.__file__).parent / "package_data" / "plotly.min.js")
-                if url.path in ("/", "/index.html"):
+                if url.path == "/":
+                    # Public web deployment: product landing page. Local desktop keeps the workspace at "/".
+                    return self._file(STATIC / ("landing.html" if app.demo_mode else "index.html"))
+                if url.path in ("/index.html", "/demo", "/demo/"):
                     return self._file(STATIC / "index.html")
                 if url.path.startswith("/static/"):
                     target = (STATIC / url.path[len("/static/"):]).resolve()
@@ -812,6 +904,8 @@ def make_handler(app: App):
                         return self._json({"error": "dilarang"}, 403)
                     return self._file(target)
                 return self._json({"error": "tidak ditemukan"}, 404)
+            except PayloadTooLarge as exc:
+                return self._json({"error": str(exc)}, 413)
             except StaleResults as exc:
                 return self._json({"error": str(exc), "status": "stale"}, 409)
             except (KeyError, ValueError) as exc:
@@ -862,6 +956,15 @@ def make_handler(app: App):
                     return self._json(onboard.reblock_file(folder, body))
                 if url.path == "/api/create-project":
                     return self._json(app.create_project(body))
+                if url.path == "/api/quick/ram":
+                    from . import onboard
+
+                    return self._json(onboard.estimate_ram(
+                        int(body["rows"]), float(body["dx"]), float(body["dy"]), float(body["dz"]),
+                        float(body.get("slope_angle", 45)),
+                    ))
+                if url.path == "/api/quick/sample":
+                    return self._json(app.prepare_quick_sample(body["source_project"], body["target_project"]))
                 if url.path == "/api/derive":
                     return self._json(app.resolved(body["project"], body["scenario"], body.get("overrides") or {}))
                 if url.path == "/api/save":
@@ -880,6 +983,8 @@ def make_handler(app: App):
                         tmp.unlink(missing_ok=True)
                     return self._json({"ok": True})
                 return self._json({"error": "tidak ditemukan"}, 404)
+            except PayloadTooLarge as exc:
+                return self._json({"error": str(exc)}, 413)
             except StaleResults as exc:
                 return self._json({"error": str(exc)}, 409)
             except RuntimeError as exc:

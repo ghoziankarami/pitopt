@@ -54,7 +54,7 @@ design:
   cell: 5.0
   # Detailed design (F-DES-6): sectors, haul ramp and validation on top of the bench geometry above. Off here so
   # the run is the uniform bowl; the Desain Detail screens build it from the finished run whatever this says.
-  # DEMO VALUES: the sector limits and the Timur/Barat geometry are illustrative, chosen so the validation
+  # ILLUSTRATIVE VALUES: the sector limits and the Timur/Barat geometry are illustrative, chosen so the validation
   # flow shows a failing IRA (Timur) and a failing OSA (Barat). They are not a geotechnical recommendation.
   detail:
     enabled: false
@@ -104,13 +104,13 @@ output:
 provenance:
   design.detail.sectors.Timur.ira_max_deg:
     source: asumsi
-    note: "Batas IRA Timur belum berdokumen geoteknik; nilai demo."
+    note: "Batas IRA Timur belum berdokumen geoteknik; nilai sementara model."
   design.detail.sectors.Barat.osa_max_deg:
     source: asumsi
-    note: "Batas OSA Barat belum berdokumen geoteknik; nilai demo."
+    note: "Batas OSA Barat belum berdokumen geoteknik; nilai sementara model."
   design.detail.ramp.grade_pct:
     source: asumsi
     note: "Grade 9 % tipikal untuk armada; belum ada spesifikasi alat."
   design.detail.ramp.truck_width_m:
     source: dokumen
-    ref: "Spesifikasi alat angkut (demo)"
+    ref: "Spesifikasi alat angkut (ilustratif)"

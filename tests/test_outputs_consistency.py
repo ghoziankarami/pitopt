@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 from conftest import discover_runs, run_id  # noqa: E402
 
 RESULTS = discover_runs()
-pytestmark = pytest.mark.skipif(not RESULTS, reason="no runs in outputs/")
+skip_no_runs = pytest.mark.skipif(not RESULTS, reason="no runs in outputs/")
 
 
 @pytest.fixture(params=RESULTS, ids=run_id)
@@ -32,6 +32,7 @@ def num(text: str) -> float:
     return float(re.sub(r"[^0-9.\-]", "", text))
 
 
+@skip_no_runs
 def test_pit_by_pit_csv_and_excel_equal_results(run):
     r, folder, name = run
     csv = pd.read_csv(folder / f"{name}_pit_by_pit.csv")
@@ -48,6 +49,7 @@ def test_pit_by_pit_csv_and_excel_equal_results(run):
                 assert close(row["npv_average"], want["npv_avg"], rel=1e-6, abs_=1.0)
 
 
+@skip_no_runs
 def test_excel_schedule_pushbacks_and_summary_equal_results(run):
     r, folder, name = run
     book = folder / f"{name}_report.xlsx"
@@ -75,6 +77,7 @@ def test_excel_schedule_pushbacks_and_summary_equal_results(run):
     assert close(bench["value"].sum(), k["value_undiscounted"], rel=1e-6, abs_=1.0)
 
 
+@skip_no_runs
 def test_pdf_reports_the_same_headline_numbers(run):
     import pypdfium2 as pdfium
 
@@ -101,6 +104,7 @@ def _faces(path):
     return np.array(pts), len(msp.query("3DFACE"))
 
 
+@skip_no_runs
 @pytest.mark.parametrize("stem,layer", [("pit_face_position", "face"), ("pit_shell", "bowl")])
 def test_dxf_surfaces_are_the_stored_surfaces(run, stem, layer):
     """Every DXF vertex sits on a node of the surface grid the UI draws, at that node's elevation."""
@@ -122,6 +126,7 @@ def test_dxf_surfaces_are_the_stored_surfaces(run, stem, layer):
     assert np.abs(pts[ok, 2] - expected[ok]).max() < 0.02 + 1e-3 * step, f"max |dz| {np.abs(pts[ok, 2] - expected[ok]).max():.4f}"
 
 
+@skip_no_runs
 def test_surface_grid_is_registered_to_the_block_footprints(run):
     """Surface nodes are cell centres laid from the model's true lower-left block edge — not shifted by
     the model origin — and the grid covers the whole block footprint."""
@@ -135,6 +140,7 @@ def test_surface_grid_is_registered_to_the_block_footprints(run):
         assert nodes[-1] >= blocks[col].max() + step / 2 - cell - 1e-6, f"{axis} stops short of the model"
 
 
+@skip_no_runs
 def test_dxf_face_position_never_above_topography_and_reaches_the_toe(run):
     r, folder, name = run
     dxf = folder / f"{name}_pit_face_position.dxf"
@@ -150,6 +156,7 @@ def test_dxf_face_position_never_above_topography_and_reaches_the_toe(run):
     assert pts[:, 2].min() <= r["kpis"]["toe_rl"] + 0.5, "the deepest face does not reach the reported toe RL"
 
 
+@skip_no_runs
 def test_stage_dxf_files_match_plan(run):
     r, folder, name = run
     npz = np.load(folder / f"{name}_surfaces.npz")
@@ -164,3 +171,107 @@ def test_stage_dxf_files_match_plan(run):
     layers = [npz[f"period_{i}"] for i in range(1, len(r["schedule"]["plan"]) + 1)]
     for a, b in zip(layers, layers[1:]):
         assert np.nanmax(b - a) < 1e-6, "an end-of-period surface is higher than the period before it"
+
+
+def _assert_offline_3d_html(html: str) -> None:
+    assert len(html) > 100_000, "local plotly.min.js bundle does not appear to be embedded"
+    assert not re.search(r'<script[^>]+src\s*=\s*["\']https?://', html, re.IGNORECASE), "external script CDN found"
+    assert '<script src="https://cdn.plot.ly' not in html
+    assert "https://cdn.plot.ly/plotly" not in html
+
+
+@skip_no_runs
+def test_3d_viewer_html_is_offline_no_cdn(run):
+    _r, folder, name = run
+    viewer = folder / f"{name}_3d_viewer.html"
+    if not viewer.exists():
+        pytest.skip("3d_viewer.html not written")
+    _assert_offline_3d_html(viewer.read_text(encoding="utf-8", errors="ignore"))
+
+
+def test_write_3d_html_is_offline_no_cdn(tmp_path):
+    from pitopt.io.viz import write_interactive_3d
+
+    xs = np.linspace(500_000.0, 500_100.0, 11)
+    ys = np.linspace(9_150_000.0, 9_150_100.0, 11)
+    topo = np.full((11, 11), 100.0)
+    pit = np.full((11, 11), 80.0)
+    out = tmp_path / "demo_3d_viewer.html"
+    write_interactive_3d(xs, ys, topo, pit, [], str(out), "Demo Pit")
+    _assert_offline_3d_html(out.read_text(encoding="utf-8"))
+
+
+def test_write_report_pdf_includes_crs_provenance_and_design_reconciliation(tmp_path):
+    import pypdfium2 as pdfium
+
+    from pitopt.io.pdf import write_report
+
+    pdf_path = tmp_path / "demo_report.pdf"
+    pit_by_pit = pd.DataFrame(
+        [{"shell": 1, "revenue_factor": 1.0, "blocks": 100, "rock_tonnes": 1000.0, "ore_tonnes": 400.0,
+          "waste_tonnes": 600.0, "strip_ratio": 1.5, "value": 50000.0, "npv_best": 45000.0, "npv_worst": 40000.0}]
+    )
+    schedule = pd.DataFrame(
+        [{"period": 1, "blocks": 100, "rock_tonnes": 1000.0, "ore_tonnes": 400.0, "waste_tonnes": 600.0,
+          "strip_ratio": 1.5, "cash_flow": 50000.0, "discount_factor": 0.909, "discounted_cash_flow": 45450.0, "npv": 45450.0}]
+    )
+    write_report(
+        str(pdf_path),
+        "Demo Project",
+        headline=[("Final pit", "shell 1, RF 1.00"), ("Undiscounted value", "50,000")],
+        parameters=[("Slope", "45 deg"), ("Mining cost", "2.50/t")],
+        pit_by_pit=pit_by_pit,
+        schedule=schedule,
+        sensitivity=None,
+        warnings=[],
+        assumptions=["Constant planning price across mine life."],
+        plan_label="best case",
+        crs="EPSG:32748",
+        vertical_datum="EGM2008",
+        provenance={
+            "block_model.file": {"source": "input", "note": "GeoSuite CSV export"},
+            "slope.overall_angle_deg": {"source": "terukur", "note": "Geotech sector A"},
+            "economics.royalty_rate": {"source": "asumsi", "note": "Default 4% royalty"},
+        },
+        design_reconciliation=[("Rock tonnes change", "+2.5%"), ("Design value", "48,750")],
+    )
+    doc = pdfium.PdfDocument(str(pdf_path))
+    text = "\n".join(doc[i].get_textpage().get_text_range() for i in range(len(doc)))
+    assert "EPSG:32748" in text
+    assert "EGM2008" in text
+    assert "Practical Design Reconciliation" in text
+    assert "48,750" in text
+    assert "Parameter Provenance" in text
+    assert "GeoSuite CSV export" in text
+    assert "terukur" in text
+    assert "asumsi" in text
+    assert "()" not in text
+    assert "None" not in text
+
+
+def test_write_surface_dxf_embeds_crs_and_vertical_datum_metadata(tmp_path):
+    import ezdxf
+
+    from pitopt.io.dxf import read_surface_metadata, write_surface
+
+    xs = np.array([500_000.0, 500_010.0, 500_020.0])
+    ys = np.array([9_150_000.0, 9_150_010.0, 9_150_020.0])
+    grid = np.full((3, 3), 120.0)
+    dxf_path = tmp_path / "pit_shell.dxf"
+    faces = write_surface(
+        str(dxf_path),
+        xs,
+        ys,
+        grid,
+        layer="PIT_SHELL",
+        project="demo_project",
+        crs="EPSG:32748",
+        vertical_datum="EGM2008",
+    )
+    assert faces == 8
+    meta = read_surface_metadata(str(dxf_path))
+    assert meta["PROJECT"] == "demo_project"
+    assert meta["CRS"] == "EPSG:32748"
+    assert meta["VERTICAL_DATUM"] == "EGM2008"
+    doc = ezdxf.readfile(str(dxf_path))
+    assert doc.units == ezdxf.units.M

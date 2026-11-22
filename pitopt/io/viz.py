@@ -283,7 +283,11 @@ def write_interactive_3d(
         legend={"itemsizing": "constant"},
         margin={"l": 0, "r": 0, "t": 60, "b": 0},
     )
-    fig.write_html(path, include_plotlyjs="cdn")
+    from pathlib import Path
+
+    vendor_plotly = Path(__file__).resolve().parents[1] / "ui" / "static" / "vendor" / "plotly.min.js"
+    include_js: bool | str = str(vendor_plotly) if vendor_plotly.is_file() else True
+    fig.write_html(path, include_plotlyjs=include_js)
 
 
 def pushback_table(blocks: pd.DataFrame, labels: dict[int, str], products: list[str]) -> pd.DataFrame:

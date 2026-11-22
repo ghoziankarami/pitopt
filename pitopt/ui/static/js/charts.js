@@ -49,7 +49,7 @@ export function pitByPit(rows, { w = 1100, h = 420, compact = false } = {}) {
     s += `<rect x="${m.l + slot * fin}" y="${m.t}" width="${slot}" height="${ph}" style="fill:var(--accent-soft)"/>`;
     s += `<line x1="${xc(fin)}" x2="${xc(fin)}" y1="${m.t + 14}" y2="${m.t + ph}" stroke-dasharray="4 3" style="stroke:var(--accent);stroke-width:1.4"/>`;
     s += `<rect x="${xc(fin) - 32}" y="${m.t}" width="64" height="18" rx="3" style="fill:var(--accent)"/>`;
-    s += `<text x="${xc(fin)}" y="${m.t + 12.5}" text-anchor="middle" font-size="9.5" font-weight="700" style="fill:#fff">PIT FINAL</text>`;
+    s += `<text x="${xc(fin)}" y="${m.t + 12.5}" text-anchor="middle" font-size="9.5" font-weight="700" style="fill:var(--on-accent, #fff)">PIT FINAL</text>`;
   }
   rows.forEach((r, i) => {
     if (r.empty) return;

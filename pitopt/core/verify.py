@@ -163,27 +163,64 @@ def schedule_check(cfg: ProjectConfig, blocks: pd.DataFrame, levels: int = 40) -
     return {"blocks_mined_before_a_block_in_their_cone": int(bad.sum()), "periods": int(p.max())}
 
 
-def design_check(face: np.ndarray, cell: float, face_angle_deg: float, overall_angle_deg: float, bench_run: float) -> dict:
+def design_check(
+    face: np.ndarray,
+    cell: float,
+    face_angle_deg: float,
+    overall_angle_deg: float,
+    bench_run: float,
+    floor: np.ndarray | None = None,
+    topo: np.ndarray | None = None,
+) -> dict:
     """Steepest local face and steepest wall over three benches on the
-    designed face position."""
+    designed face position.
 
-    def steepest(offset_cells: int) -> float:
+    ``steepest_over_3_benches_deg`` checks every raster cell pair at the
+    3-bench grid span (preserved for backward compatibility).
+    ``steepest_wall_over_3_benches_deg`` restricts the 3-bench check to pairs
+    where both cells lie on the sloped pit wall (outside ``floor`` and below
+    ``topo`` when provided) and matches the 3-bench horizontal span on both
+    axial and diagonal directions, separating true wall slope from stepped
+    floor raster transitions.
+    """
+
+    def steepest(offsets: tuple[tuple[int, int], ...], mask: np.ndarray | None = None) -> float:
         worst = 0.0
-        for di, dj in ((offset_cells, 0), (0, offset_cells), (offset_cells, offset_cells), (offset_cells, -offset_cells)):
+        for di, dj in offsets:
             a = face[max(0, -di): face.shape[0] - max(0, di), max(0, -dj): face.shape[1] - max(0, dj)]
             b = face[max(0, di): face.shape[0] - max(0, -di) or None, max(0, dj): face.shape[1] - max(0, -dj) or None]
             rise = np.abs(b - a)
+            if mask is not None:
+                ma = mask[max(0, -di): face.shape[0] - max(0, di), max(0, -dj): face.shape[1] - max(0, dj)]
+                mb = mask[max(0, di): face.shape[0] - max(0, -di) or None, max(0, dj): face.shape[1] - max(0, -dj) or None]
+                rise = np.where(ma & mb, rise, np.nan)
             run = math.hypot(di, dj) * cell
             if np.isfinite(rise).any():
                 worst = max(worst, float(np.degrees(np.arctan(np.nanmax(rise) / run))))
         return worst
 
     span = int(math.ceil(3 * bench_run / cell))
+    ax = max(1, int(round(3 * bench_run / cell)))
+    diag = max(1, int(round(3 * bench_run / (cell * math.sqrt(2)))))
+
+    on_floor = (
+        np.isfinite(floor) & (face <= floor + 1e-6)
+        if floor is not None and floor.shape == face.shape
+        else np.zeros(face.shape, dtype=bool)
+    )
+    on_topo = (
+        np.isfinite(topo) & (face >= topo - 1e-6)
+        if topo is not None and topo.shape == face.shape
+        else np.zeros(face.shape, dtype=bool)
+    )
+    wall_mask = np.isfinite(face) & ~on_floor & ~on_topo
+
     return {
         "design_face_angle_deg": face_angle_deg,
-        "steepest_local_face_deg": steepest(1),
+        "steepest_local_face_deg": steepest(((1, 0), (0, 1), (1, 1), (1, -1))),
         "design_overall_angle_deg": round(overall_angle_deg, 2),
-        "steepest_over_3_benches_deg": steepest(span),
+        "steepest_over_3_benches_deg": steepest(((span, 0), (0, span), (span, span), (span, -span))),
+        "steepest_wall_over_3_benches_deg": steepest(((ax, 0), (0, ax), (diag, diag), (diag, -diag)), mask=wall_mask),
         "three_bench_span_m": span * cell,
     }
 
@@ -204,7 +241,19 @@ def run_all(
     if "period" in blocks.columns and (blocks["period"] > 0).any():
         out["schedule"] = schedule_check(cfg, blocks)
     if face is not None and cell and geometry is not None:
-        out["design"] = design_check(face, cell, geometry.face_angle_deg, geometry.overall_angle_deg, geometry.bench_run)
+        from .design import _floor_raster, design_grid
+
+        grid = design_grid(blocks, elevation, cell)
+        floor = _floor_raster(blocks, blocks["in_pit"].to_numpy().astype(bool), grid)
+        out["design"] = design_check(
+            face,
+            cell,
+            geometry.face_angle_deg,
+            geometry.overall_angle_deg,
+            geometry.bench_run,
+            floor=floor,
+            topo=grid.topo,
+        )
     out["violations"] = (
         out["walls"]["violations"],
         out["cone"]["in_pit_blocks_with_unmined_block_inside_cone"],

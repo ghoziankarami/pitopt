@@ -34,12 +34,12 @@ export function render() {
       ${s ? `<div class="note num small" style="margin:10px 0">H ${fmt(s.bench_height, 0)} m · β ${fmt(s.face_angle_deg, 0)}° · berm ${fmt(s.berm_width, 1)} m · IRA ${fmt(s.ira_deg, 1)}°</div>` : ""}
       <div class="navh" style="padding:8px 0 6px">LAYER</div>${layer("shell", "Shell PitOpt")}${layer("bench", "Bench (crest + toe)")}${layer("ramp", "Ramp centerline")}${layer("sector", "Sektor")}${layer("blocks", "Block model (slice)")}
       <p class="xs muted" style="margin:10px 0 0">Skala vertikal selalu ditampilkan; penampang 1:1 tersedia di layar Penampang.</p></div>
-    <div class="card" style="padding:0"><div class="row" style="padding:12px 16px;border-bottom:1px solid var(--line);gap:12px"><h2>Viewer 3D</h2><span class="muted small">desain praktis</span><span class="grow"></span>
-        <span class="xs muted">VERTICAL EXAGGERATION</span><span class="tabs">${[1, 2, 5].map((v) => `<button data-act="dVe" data-v="${v}" class="${D.ve === v ? "on" : ""}">${v}×</button>`).join("")}</span><span class="ve ${D.ve === 1 ? "one" : ""}">VE ${fmt(D.ve, 1)}×</span></div>
+    <div class="card" style="padding:0"><div class="row" style="padding:12px 16px;border-bottom:1px solid var(--line);gap:8px 12px;flex-wrap:wrap"><h2>Viewer 3D</h2><span class="muted small">desain praktis</span><span class="grow"></span>
+        <span class="xs muted">VERTICAL EXAGGERATION</span><span class="tabs" role="tablist">${[1, 2, 5].map((v) => `<button role="tab" aria-selected="${D.ve === v}" data-act="dVe" data-v="${v}" class="${D.ve === v ? "on" : ""}">${v}×</button>`).join("")}</span><span class="ve ${D.ve === 1 ? "one" : ""}">VE ${fmt(D.ve, 1)}×</span></div>
       <div style="position:relative"><div id="d3d" style="height:600px"></div>
-        ${D.layers.blocks && D.plan ? `<div class="inset"><div class="xs" style="padding:6px 8px 0"><b>Block model</b> · slice RL <span class="num">${fmt(D.plan.rl, 1)}</span></div><canvas id="dplan" style="width:220px;height:170px;display:block"></canvas></div>` : ""}
+        ${D.layers.blocks && D.plan ? `<div class="inset"><div class="xs" style="padding:6px 8px 0"><b>Block model</b> · <span>slice RL</span> <span class="num">${fmt(D.plan.rl, 1)}</span></div><canvas id="dplan" style="width:220px;height:170px;display:block"></canvas></div>` : ""}
         ${busy ? `<div class="chip" style="position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--panel)">Bench ${job.done || 0}${job.total ? ` dari ${job.total}` : ""} sudah tampil</div>` : ""}</div></div>
-    <div class="card" style="padding:0"><div class="tabs" style="border:0;border-bottom:1px solid var(--line);border-radius:0;display:flex"><button class="${D.tab === "param" ? "on" : ""}" data-act="dTab" data-k="param" style="flex:1">Parameter</button><button class="${D.tab === "val" ? "on" : ""}" data-act="dTab" data-k="val" style="flex:1">Validasi ${nProblems ? `<span class="pill warn">${nProblems}</span>` : ""}</button></div>
+    <div class="card" style="padding:0"><div class="tabs" role="tablist" style="border:0;border-bottom:1px solid var(--line);border-radius:0;display:flex"><button role="tab" aria-selected="${D.tab === "param"}" class="${D.tab === "param" ? "on" : ""}" data-act="dTab" data-k="param" style="flex:1">Parameter</button><button role="tab" aria-selected="${D.tab === "val"}" class="${D.tab === "val" ? "on" : ""}" data-act="dTab" data-k="val" style="flex:1">Validasi ${nProblems ? `<span class="pill warn">${nProblems}</span>` : ""}</button></div>
       <div style="padding:14px 16px">${D.tab === "val" ? valTab(doc) : paramTab(s, osa, doc)}</div></div>
   </div>`}`);
 }
@@ -58,7 +58,7 @@ function paramTab(s, osa, doc) {
 }
 function valTab(doc) {
   if (!doc) return `<div class="empty">Belum ada hasil.</div>`;
-  return `${doc.findings.map((f) => `<div class="row small" style="gap:8px;padding:7px 0;border-top:1px solid var(--line2);align-items:flex-start">${pill(f.status)}<span>${f.scope ? `<b>${esc(f.scope)}</b> — ` : ""}${esc(t(say(f)))}</span></div>`).join("")}
+  return `${doc.findings.map((f) => `<div class="row small" style="gap:8px;padding:7px 0;border-top:1px solid var(--line2);align-items:flex-start">${pill(f.status)}<span>${f.scope ? `<b>${esc(f.scope)}</b> — ` : ""}<span>${esc(say(f))}</span></span></div>`).join("")}
     <a data-go="d-validasi" class="btn" style="display:block;text-align:center;margin-top:12px;text-decoration:none">Buka Validasi lengkap →</a>`;
 }
 

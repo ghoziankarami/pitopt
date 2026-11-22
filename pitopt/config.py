@@ -74,6 +74,7 @@ class BlockModelConfig:
     density: float = 2.7
     include_classes: list = field(default_factory=list)   # empty = keep all
     ore_domains: list = field(default_factory=list)       # empty = any domain may be ore
+    unestimated_action: str = "reject"                    # "reject" | "drop" | "zero_waste"
 
 
 @dataclass

@@ -268,3 +268,11 @@ def test_model_too_large_is_refused_before_it_runs(monkeypatch) -> None:
     assert estimate_solver_bytes(230_164, 15_106_074) / 1e9 >= 9.4
     monkeypatch.setattr(limits, "available_memory_bytes", lambda: None)
     assert check_solver_memory(3_600_000, 3_600_000 * 45)["need_gb"] > 100          # memory unknown: estimate only
+
+
+def test_cross_platform_memory_detection_returns_positive_bytes() -> None:
+    from pitopt.core.limits import available_memory_bytes
+
+    mem = available_memory_bytes()
+    assert mem is not None and mem > 100 * 2**20, f"expected positive available RAM bytes on this OS, got {mem}"
+

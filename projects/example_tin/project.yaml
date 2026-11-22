@@ -1,6 +1,6 @@
 project:
   name: example_tin
-  title: Example Tin — sintetis
+  title: Example Tin — studi kasus
   scenario: Dasar · shells
 block_model:
   path: example_block_model.csv

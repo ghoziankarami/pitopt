@@ -1,8 +1,9 @@
-import { S, notify } from "../store.js";
+import { S, notify, ensureGrids3d } from "../store.js";
 import { A } from "../actions.js";
 import { fmt, esc, api, qs, toast } from "../util.js";
 import { drawPlan, section } from "../charts.js";
 import { pageHead, empty } from "./common.js";
+import { t } from "../i18n.js";
 
 const ui = { layers: new Set(["topo", "face"]), pb: 0, period: 1, playing: null, line: null, sec: null, secBusy: false, plotly: null };
 
@@ -10,7 +11,7 @@ function loadPlotly() {
   if (window.Plotly) return Promise.resolve(window.Plotly);
   return (ui.plotly ||= new Promise((ok, no) => {
     const s = document.createElement("script"); s.src = "/static/vendor/plotly.min.js";
-    s.onload = () => ok(window.Plotly); s.onerror = () => no(new Error("Plotly gagal dimuat")); document.head.appendChild(s);
+    s.onload = () => ok(window.Plotly); s.onerror = () => no(new Error(t("Plotly gagal dimuat"))); document.head.appendChild(s);
   }));
 }
 
@@ -19,11 +20,11 @@ export function render() {
   if (!r) return empty("3D & Penampang");
   const nPb = r.pushbacks.rows.length, nPer = r.schedule.plan.length;
   const chk = (k, label) => `<label class="chk"><input type="checkbox" data-act="l3" data-k="${k}" ${ui.layers.has(k) ? "checked" : ""}> ${label}</label>`;
-  const ves = [1, 2, 3, 5, 10].map((v) => `<button data-act="ve" data-v="${v}" class="${S.ve === v ? "on" : ""}">${v}×</button>`).join("");
-  return `<div class="page">${pageHead("3D & Penampang", "surface pit, face position, pushback, dan posisi akhir periode", `<div class="tabs">${ves}</div>`)}
+  const ves = [1, 2, 3, 5, 10].map((v) => `<button role="tab" aria-selected="${S.ve === v}" data-act="ve" data-v="${v}" class="${S.ve === v ? "on" : ""}">${v}×</button>`).join("");
+  return `<div class="page">${pageHead("3D & Penampang", "surface pit, face position, pushback, dan posisi akhir periode", `<div class="tabs" role="tablist">${ves}</div>`)}
   <div class="card"><div class="row" style="flex-wrap:wrap;gap:16px">${chk("topo", "Topografi")}${chk("bowl", "Pit shell (mangkok)")}${chk("face", "Face position")}${chk("pb", "Pushback")}${chk("period", "Akhir periode")}
-    ${ui.layers.has("pb") ? `<select data-on="pbSel"><option value="0">semua pushback</option>${Array.from({ length: nPb }, (_, i) => `<option value="${i + 1}" ${ui.pb === i + 1 ? "selected" : ""}>PB${i + 1}</option>`).join("")}</select>` : ""}
-    ${ui.layers.has("period") ? `<span class="row" style="gap:8px"><button class="btn" data-act="play">${ui.playing ? "Berhenti" : "Putar"}</button><input type="range" min="1" max="${nPer}" value="${ui.period}" data-input="perSel"><b class="num">P${ui.period}</b></span>` : ""}
+    ${ui.layers.has("pb") ? `<select data-on="pbSel" aria-label="Pushback"><option value="0">semua pushback</option>${Array.from({ length: nPb }, (_, i) => `<option value="${i + 1}" ${ui.pb === i + 1 ? "selected" : ""}>PB${i + 1}</option>`).join("")}</select>` : ""}
+    ${ui.layers.has("period") ? `<span class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="play">${ui.playing ? "Berhenti" : "Putar"}</button><input type="range" min="1" max="${nPer}" value="${ui.period}" data-input="perSel" aria-label="Periode"><b class="num">P${ui.period}</b></span>` : ""}
     <span class="grow"></span><span class="ve">VE ${S.ve}×</span></div></div>
   <div class="card" style="margin-top:16px;padding:0"><div id="plot3d" style="height:560px"></div></div>
   <div class="split" style="margin-top:16px"><div class="card"><div class="cardhead"><h2>Garis penampang</h2></div><p class="howto">Klik dua titik pada plan view untuk menarik garis penampang.</p><canvas id="secplan" class="plan" style="cursor:crosshair"></canvas></div>
@@ -34,15 +35,15 @@ const secLayers = () => ["face", ...(ui.layers.has("bowl") ? ["bowl"] : [])];
 
 const T = (m) => m[0].map((_, j) => m.map((row) => row[j]));
 async function plot(root) {
-  const el = root.querySelector("#plot3d"); const g = S.results.grids3d; if (!el || !g) return;
+  const el = root.querySelector("#plot3d"); if (!el) return; const g = await ensureGrids3d().catch(() => null); if (!g) return;
   const P = await loadPlotly();
   const surf = (z, color, name, opacity = 1) => ({ type: "surface", x: g.x, y: g.y, z: T(z), name, showscale: false, opacity, colorscale: [[0, color], [1, color]], hoverinfo: "name+z", lighting: { ambient: 0.65, diffuse: 0.6 } });
   const data = [];
-  if (ui.layers.has("topo")) data.push(surf(g.topo, "#6B7A3A", "Topografi", 0.9));
-  if (ui.layers.has("bowl")) data.push(surf(g.layers.bowl, "#B8A37A", "Pit shell"));
-  if (ui.layers.has("face")) data.push(surf(g.layers.face, "#8A6A3B", "Face position"));
+  if (ui.layers.has("topo")) data.push(surf(g.topo, "#6B7A3A", t("Topografi"), 0.9));
+  if (ui.layers.has("bowl")) data.push(surf(g.layers.bowl, "#B8A37A", t("Pit shell")));
+  if (ui.layers.has("face")) data.push(surf(g.layers.face, "#8A6A3B", t("Face position")));
   if (ui.layers.has("pb")) { const n = S.results.pushbacks.rows.length; for (let i = 1; i <= n; i++) if (!ui.pb || ui.pb === i) { const t = n <= 1 ? 0.5 : (i - 1) / (n - 1); data.push(surf(g.layers[`pushback_${i}`], vir(t), `PB${i}`)); } }
-  if (ui.layers.has("period")) data.push(surf(g.layers[`period_${ui.period}`], vir((ui.period - 1) / Math.max(1, S.results.schedule.plan.length - 1)), `Akhir P${ui.period}`));
+  if (ui.layers.has("period")) data.push(surf(g.layers[`period_${ui.period}`], vir((ui.period - 1) / Math.max(1, S.results.schedule.plan.length - 1)), `${t("Akhir")} P${ui.period}`));
   const dark = document.documentElement.dataset.theme === "dark";
   const xr = g.x[g.x.length - 1] - g.x[0], yr = g.y[g.y.length - 1] - g.y[0], zs = g.topo.flat().filter((v) => v != null);
   const zr = Math.max(...zs) - Math.min(...zs) || 1;

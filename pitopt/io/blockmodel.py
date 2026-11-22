@@ -21,16 +21,50 @@ optimisation ones:
 """
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
 from ..config import BlockModelConfig, EconomicsConfig
 
+_VALID_UNESTIMATED_ACTIONS = ("reject", "drop", "zero_waste")
+_META_SEGMENT_RE = re.compile(r"^\s*(crs|vertical[\s_]+datum)\s*[:=]\s*(.+?)\s*$", re.IGNORECASE)
+
+
+def parse_csv_comment_metadata(path: str | Path) -> dict[str, str]:
+    """Extract CRS and vertical datum hints from leading `#` comment lines in a CSV."""
+    meta: dict[str, str] = {}
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if not stripped.startswith("#"):
+                break
+            body = stripped.lstrip("#").strip()
+            for segment in re.split(r"[|;]", body):
+                match = _META_SEGMENT_RE.match(segment)
+                if not match:
+                    continue
+                key = "crs" if match.group(1).lower() == "crs" else "vertical_datum"
+                value = match.group(2).strip()
+                if value and key not in meta:
+                    meta[key] = value
+    return meta
+
 
 def load_block_model(cfg: BlockModelConfig, econ: EconomicsConfig | None = None) -> pd.DataFrame:
+    if cfg.unestimated_action not in _VALID_UNESTIMATED_ACTIONS:
+        raise ValueError(
+            f"Unsupported unestimated_action {cfg.unestimated_action!r}; "
+            f"expected one of {_VALID_UNESTIMATED_ACTIONS}."
+        )
     # Category labels are literal identifiers, including numeric-looking codes.
+    # Support `#` provenance comment headers (such as GeoSuite Resource CSV exports).
     labels = {column: str for column in (cfg.domain_col, cfg.class_col) if column}
-    raw = pd.read_csv(cfg.path, converters=labels)
+    raw = pd.read_csv(cfg.path, converters=labels, comment="#")
     if raw.empty:
         raise ValueError("Block model contains no data rows.")
 
@@ -72,7 +106,36 @@ def load_block_model(cfg: BlockModelConfig, econ: EconomicsConfig | None = None)
     if cfg.class_col and cfg.class_col in raw.columns:
         df["resource_class"] = raw[cfg.class_col].astype(str)
 
+    row_field = "source_row"
+    while row_field in df.columns:
+        row_field = "_" + row_field
+    df[row_field] = np.arange(1, len(raw) + 1)
+
+    numeric = list(dict.fromkeys(["x", "y", "z", "dx", "dy", "dz", "density"] + grade_columns
+                                + (["volume"] if "volume" in df else [])))
+    for column in numeric:
+        bad = ~np.isfinite(df[column].to_numpy(dtype=float))
+        if bad.any():
+            rows = (np.flatnonzero(bad)[:10] + 1).tolist()
+            raise ValueError(f"{column}: missing or nonfinite values in data rows {rows}; correct the source, "
+                             "missing grades are not zero.")
+
+    sentinel_mask = (
+        df[grade_columns].le(-999).any(axis=1)
+        if grade_columns
+        else pd.Series(False, index=df.index)
+    )
+    unestimated_count = int(sentinel_mask.sum())
+    if cfg.unestimated_action == "drop" and unestimated_count:
+        df = df.loc[~sentinel_mask].copy()
+        if df.empty:
+            raise ValueError("Block model contains no data rows after filtering unestimated (-999) blocks.")
+    elif cfg.unestimated_action == "zero_waste" and unestimated_count:
+        for column in grade_columns:
+            df.loc[df[column] <= -999, column] = 0.0
+
     processable = pd.Series(True, index=df.index)
+    classes_as_waste: int | None = None
     if cfg.include_classes:
         if "resource_class" not in df.columns:
             raise ValueError("block_model.include_classes is set but no class_col was supplied or found.")
@@ -83,22 +146,21 @@ def load_block_model(cfg: BlockModelConfig, econ: EconomicsConfig | None = None)
                 f"Available: {sorted(df['resource_class'].unique())}"
             )
         processable &= in_class
-        df.attrs["classes_as_waste"] = int((~in_class).sum())
+        classes_as_waste = int((~in_class).sum())
 
     if cfg.ore_domains and "domain" in df.columns:
         processable &= df["domain"].isin(cfg.ore_domains)
+    if cfg.unestimated_action == "zero_waste" and unestimated_count:
+        processable &= ~sentinel_mask.loc[df.index]
     df["is_ore_domain"] = processable.to_numpy()
 
-    numeric = list(dict.fromkeys(["x", "y", "z", "dx", "dy", "dz", "density"] + grade_columns
-                                + (["volume"] if "volume" in df else [])))
-    for column in numeric:
-        bad = ~np.isfinite(df[column].to_numpy(dtype=float))
-        if bad.any():
-            rows = (np.flatnonzero(bad)[:10] + 1).tolist()
-            raise ValueError(f"{column}: missing or nonfinite values in data rows {rows}; correct the source, "
-                             "missing grades are not zero.")
     for column in grade_columns:
         if df[column].lt(0).any():
+            if (df[column] == -999).any():
+                raise ValueError(
+                    f"{column}: negative grades (including -999 unestimated/missing-value sentinels) "
+                    "are not supported; filter unestimated rows or reblock before import."
+                )
             raise ValueError(f"{column}: negative grades (including missing-value sentinels) are not supported.")
     if "volume" in df and df["volume"].le(0).any():
         raise ValueError("Material volume must be positive; remove air cells explicitly before import.")
@@ -110,12 +172,15 @@ def load_block_model(cfg: BlockModelConfig, econ: EconomicsConfig | None = None)
     if invalid.any():
         raise ValueError(f"{int(invalid.sum())} blocks have non-positive block size or density.")
 
-    row_field = "source_row"
-    while row_field in df.columns:
-        row_field = "_" + row_field
-    df[row_field] = np.arange(1, len(raw) + 1)
-    df.attrs["source_row_field"] = row_field
-    return df.reset_index(drop=True)
+    out = df.reset_index(drop=True)
+    out.attrs["source_row_field"] = row_field
+    if classes_as_waste is not None:
+        out.attrs["classes_as_waste"] = classes_as_waste
+    if cfg.unestimated_action == "drop":
+        out.attrs["unestimated_dropped"] = unestimated_count
+    elif cfg.unestimated_action == "zero_waste":
+        out.attrs["unestimated_zeroed"] = unestimated_count
+    return out
 
 
 def write_block_model(df: pd.DataFrame, path: str) -> None:

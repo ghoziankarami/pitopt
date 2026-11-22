@@ -1,5 +1,6 @@
 // 06 · Ekspor — what gets written, the DXF layer structure, and the provenance every file carries.
 import { A } from "../actions.js";
+import { t } from "../i18n.js";
 import { esc, fmt } from "../util.js";
 import { D, ensure, exportFiles } from "../design/core.js";
 import { gate, notice, page } from "../design/ui.js";
@@ -21,7 +22,14 @@ export function render() {
   const first = doc.benches[0], last = doc.benches.at(-1), rl = (v) => String(Math.round(v)).replace(".", "_");
   const asum = prov.parameters.filter((p) => p.source === "ASUMSI").length;
   const problems = doc.findings.filter((f) => f.status !== "OK").length;
-  const shown = { ...prov, parameters: prov.parameters.filter((p) => p.source !== "DEFAULT").slice(0, 5) };
+  const shown = {
+    ...prov,
+    parameters: prov.parameters.filter((p) => p.source !== "DEFAULT").slice(0, 5).map((p) => ({
+      ...p,
+      ...(p.note ? { note: t(p.note) } : {}),
+      ...(p.ref ? { ref: t(p.ref) } : {}),
+    })),
+  };
   return page("Ekspor desain", "Langkah 5 dari 5 · bench dan ramp sebagai DXF, sesi sebagai JSON dengan provenance. Setiap output membawa parameter, asumsi, versi engine, dan tanggal.", "", `
   ${notice()}
   <div class="banners" style="margin-bottom:16px"><div class="bh"><span style="font-size:18px">⚠</span><b>Yang perlu diketahui sebelum file dipakai di CAD atau dikirim ke CP</b></div>
@@ -30,19 +38,19 @@ export function render() {
   <div class="dd-cols2">
     <div>
       <div class="card"><div class="cardhead"><h2>Output</h2><span class="lbl">centang yang akan ditulis ke folder hasil skenario</span></div>
-        <table class="t"><thead><tr><th class="l"></th><th class="l">Output</th><th class="l">Format</th></tr></thead><tbody>${OUTPUTS.map(([k, name, sub, fmtName]) => `<tr><td class="l"><input type="checkbox" data-act="dPick" data-k="${k}" ${picked.has(k) ? "checked" : ""} ${k === "json" ? "disabled" : ""}></td><td class="l"><b>${name}</b><div class="xs muted">${sub}</div></td><td class="l num small">${fmtName}</td></tr>`).join("")}</tbody></table>
+        <div class="table-wrap"><table class="t"><thead><tr><th class="l"></th><th class="l">Output</th><th class="l">Format</th></tr></thead><tbody>${OUTPUTS.map(([k, name, sub, fmtName]) => `<tr><td class="l"><input type="checkbox" aria-label="Pilih" data-act="dPick" data-k="${k}" ${picked.has(k) ? "checked" : ""} ${k === "json" ? "disabled" : ""}></td><td class="l"><b>${name}</b><div class="xs muted">${sub}</div></td><td class="l num small">${fmtName}</td></tr>`).join("")}</tbody></table></div>
         <p class="xs muted" style="margin:8px 0">JSON selalu ditulis: ia membawa provenance dan status validasi.</p>
-        <div class="row" style="gap:10px;margin-top:6px"><span class="num small muted grow">folder hasil skenario ${esc(D.state.meta.scenario)}</span><button class="btn primary" data-act="dExport">Ekspor terpilih (${picked.size} jenis)</button></div>
-        ${D.exported ? `<div style="margin-top:14px"><div class="navh" style="padding:0 0 6px">FILE DITULIS</div>${D.exported.map((f) => `<div class="row small" style="padding:5px 0;border-top:1px solid var(--line2)"><span class="tagc ok">OK</span><span class="num grow">${esc(f.name)}</span><span class="num muted">${fmt(f.bytes / 1024, 0)} KB</span><a data-act="dDownload" data-file="${esc(f.name)}">Unduh</a></div>`).join("")}</div>` : ""}
+        <div class="row" style="gap:10px;margin-top:6px;flex-wrap:wrap"><span class="num small muted grow">folder hasil skenario ${esc(D.state.meta.scenario)}</span><button class="btn primary" data-act="dExport">Ekspor terpilih (${picked.size} jenis)</button></div>
+        ${D.exported ? `<div style="margin-top:14px"><div class="navh" style="padding:0 0 6px">FILE DITULIS</div>${D.exported.map((f) => `<div class="row small" style="padding:5px 0;border-top:1px solid var(--line2);flex-wrap:wrap"><span class="tagc ok">OK</span><span class="num grow" style="min-width:0;overflow-wrap:anywhere">${esc(f.name)}</span><span class="num muted">${fmt(f.bytes / 1024, 0)} KB</span><a data-act="dDownload" data-file="${esc(f.name)}">Unduh</a></div>`).join("")}</div>` : ""}
         </div>
       <div class="card"><div class="cardhead"><h2>Struktur layer DXF</h2><span class="lbl">terbuka terpisah di AutoCAD dan Surpac</span></div>
-        <table class="t"><tbody>
+        <div class="table-wrap"><table class="t"><tbody>
           <tr><td class="l num">PD_CREST_${rl(first.crest_rl)} … PD_CREST_${rl(last.crest_rl)}</td><td class="l muted">${n} layer · polyline 3D</td></tr>
           <tr><td class="l num">PD_TOE_${rl(first.toe_rl)} … PD_TOE_${rl(last.toe_rl)}</td><td class="l muted">${n} layer · polyline 3D</td></tr>
           <tr><td class="l num">PD_RAMP_CL</td><td class="l muted">centerline · elevasi z = jalur nyata</td></tr>
           <tr><td class="l num">PD_RAMP_EDGE</td><td class="l muted">tepi kiri dan kanan</td></tr>
           <tr><td class="l num">PD_SECTOR</td><td class="l muted">${doc.sectors.length} garis batas · nama sektor</td></tr>
-          <tr><td class="l num">PD_SHELL_REF</td><td class="l muted">opsional · crest shell RF ${fmt(prov.sourceShell.final_rf, 2)}</td></tr></tbody></table>
+          <tr><td class="l num">PD_SHELL_REF</td><td class="l muted">opsional · crest shell RF ${fmt(prov.sourceShell.final_rf, 2)}</td></tr></tbody></table></div>
         <p class="xs muted" style="margin:8px 0 0">Satuan meter, sistem koordinat sama dengan shell PitOpt (tanpa transformasi). Format AC1024. Nama layer memakai RL ganjil dengan garis bawah karena titik tidak boleh ada di nama layer.</p></div>
     </div>
     <div><div class="card"><div class="cardhead"><h2>Blok provenance</h2><span class="lbl">ikut di JSON sesi dan header DXF</span></div>

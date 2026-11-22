@@ -1,6 +1,7 @@
 // 06 · Ramp — the haul road: pattern, width from the truck, grade, and what it does to the overall slope angle.
 import { A } from "../actions.js";
 import { esc, fmt } from "../util.js";
+import { t } from "../i18n.js";
 import { D, ensure, pill, changed } from "../design/core.js";
 import { field, gate, noDesign, notice, page, planControls, saveButton } from "../design/ui.js";
 import { paintPlan } from "../design/planview.js";
@@ -15,7 +16,7 @@ export function render() {
   const st = D.state, ramp = st.ramp, doc = D.result?.document, r = doc?.ramp;
   const pattern = st.params.detail.ramp.pattern;
   const p = st.params.detail.ramp;
-  const toggle = (k, label) => `<button class="btn ${p.pattern === k ? "on" : ""}" data-act="dPattern" data-k="${k}" style="flex:1;height:44px">${label}</button>`;
+  const toggle = (k, label) => `<button class="btn ${p.pattern === k ? "on" : ""}" aria-pressed="${p.pattern === k}" data-act="dPattern" data-k="${k}" style="flex:1;height:44px">${label}</button>`;
   return page("Ramp", "Langkah 3 dari 5 · satu ramp per pit (spiral atau switchback), lebar dari spesifikasi alat, grade tetap.",
     `${changed() ? `<button class="btn" data-act="dResetDraft">Batalkan perubahan</button>${saveButton()}` : ""}<button class="btn primary" data-act="dGenerate">${D.result ? "Terapkan & regenerasi" : "Generate desain"}</button>`, `
   ${notice()}
@@ -33,7 +34,7 @@ export function render() {
       <div class="dd-two">${field({ label: "Grade", path: "ramp.grade_pct", unit: "%" })}${field({ label: "Arah putar", path: "ramp.direction", kind: "select", options: [["clockwise", "searah jam"], ["anticlockwise", "berlawanan jam"]] })}
         ${field({ label: "Azimut masuk", path: "ramp.entry_azimuth_deg", unit: "°", hint: `Kosong = di azimut tempat dinding terlebar${r?.entry_defaulted ? `: ${fmt(r.entry_azimuth_deg, 0)}°` : ""}.` })}
         ${p.pattern === "switchback" ? `${field({ label: "Jumlah balik arah", path: "ramp.switchbacks", kind: "int", step: 1, min: 1 })}${field({ label: "Radius hairpin", path: "ramp.hairpin_radius_m", unit: "m", hint: "Dari lingkaran putar truk; tanpa default." })}` : ""}</div>
-      <p class="xs muted" style="margin:10px 0 0">Grade dalam batas ${fmt(p.grade_min_pct, 0)}–${fmt(p.grade_max_pct, 0)} %; batas traksi 12 %.${D.result && r ? ` Panjang centerline <b class="num">${fmt(r.horizontal_length_m, 0)} m</b> untuk naik ${fmt(D.result.document.crest_rl - D.result.document.floor_rl, 0)} m.` : ""}</p></div>
+      <p class="xs muted" style="margin:10px 0 0"><span>Grade dalam batas ${fmt(p.grade_min_pct, 0)}–${fmt(p.grade_max_pct, 0)} %; batas traksi 12 %.</span>${D.result && r ? ` <span>Panjang centerline</span> <b class="num">${fmt(r.horizontal_length_m, 0)} m</b> <span>untuk naik ${fmt(D.result.document.crest_rl - D.result.document.floor_rl, 0)} m.</span>` : ""}</p></div>
     <div>
       <div class="card"><div class="cardhead"><h2>Alignment di plan view</h2><span class="lbl">lingkaran kosong = masuk di dasar · pita = lebar ramp</span></div>
         ${D.result ? `<div style="margin-bottom:8px">${planControls({ modes: false })}</div><canvas id="dplan" class="plan" style="height:440px"></canvas>` : noDesign()}</div>
@@ -57,7 +58,7 @@ function side(doc, r) {
   }).join("");
   const width = doc.floor_width_m, min = doc.provenance.parameters.find((p) => p.id === "limits.min_mining_width_m")?.value ?? 30;
   return `<div class="card"><div class="cardhead"><h2>Efek ramp pada OSA</h2></div>
-      <table class="t"><thead><tr><th class="l">Sektor</th><th>OSA tanpa</th><th>OSA + ramp</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="table-wrap"><table class="t"><thead><tr><th class="l">Sektor</th><th>OSA tanpa</th><th>OSA + ramp</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="xs muted" style="margin:8px 0 0">Ramp memakan ruang berm: tiap perpotongan menambah lebar ramp dikurangi berm ke lebar dinding. Sektor yang dilewati ramp ${fmt(Math.max(...doc.sectors.map((s) => s.ramp_crossings_max || 0)), 0)}× di garis kritis turun paling jauh.</p></div>
     <div class="card"><div class="cardhead"><h2>Continuity check</h2><span class="lbl">titik potong ramp di tiap bench</span></div>
       <div class="row" style="flex-wrap:wrap;gap:4px">${cells}</div>
@@ -89,10 +90,10 @@ function profile(canvas) {
   c.font = "10px 'IBM Plex Mono', monospace"; c.fillStyle = muted; c.strokeStyle = css("--line2");
   for (let i = 0; i <= 4; i++) { const z = z0 + ((z1 - z0) * i) / 4, y = Y(z); c.beginPath(); c.moveTo(padL, y); c.lineTo(w - padR, y); c.stroke(); c.fillText(`+${fmt(z, 0)}`, 4, y + 3); }
   for (let i = 0; i <= 4; i++) c.fillText(fmt((L * i) / 4, 0), X((L * i) / 4) - 8, h - padB + 14);
-  c.fillText("jarak sepanjang centerline (m)", padL, h - padB + 28);
+  c.fillText(t("jarak sepanjang centerline (m)"), padL, h - padB + 28);
   c.beginPath(); R.z.forEach((z, i) => (i ? c.lineTo(X(s[i]), Y(z)) : c.moveTo(X(s[i]), Y(z)))); c.strokeStyle = accent; c.lineWidth = 2.4; c.stroke();
   c.fillStyle = ink; c.font = "11px 'IBM Plex Sans', sans-serif";
-  c.fillText(`grade ${fmt(D.result.document.ramp.grade_pct, 1)} % konstan`, X(L * 0.35), Y(z0 + (z1 - z0) * 0.55) - 8);
+  c.fillText(t(`grade ${fmt(D.result.document.ramp.grade_pct, 1)} % konstan`), X(L * 0.35), Y(z0 + (z1 - z0) * 0.55) - 8);
   // the sector under the road, along the bottom
   const sectors = D.state.sectors || [];
   const name = (az) => sectors.find((sec) => ((norm(az) - sec.azimuth_from + 360) % 360) < (((sec.azimuth_to - sec.azimuth_from) % 360 + 360) % 360 || 360))?.name || "";

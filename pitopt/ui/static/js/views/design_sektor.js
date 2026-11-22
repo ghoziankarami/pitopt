@@ -27,7 +27,7 @@ export function render() {
   if (g) return g;
   const st = D.state, sectors = st.sectors || [], sel = Math.min(D.sel, sectors.length - 1), s = sectors[sel];
   const configured = (value("sectors") || []).length > 0;
-  const cards = sectors.map((x, i) => `<div class="selcard ${i === sel ? "on" : ""}" data-act="dSel" data-i="${i}" style="cursor:pointer;margin-bottom:8px"><div class="row" style="gap:10px">${dial(x)}
+  const cards = sectors.map((x, i) => `<div class="selcard ${i === sel ? "on" : ""}" role="button" tabindex="0" aria-pressed="${i === sel}" data-act="dSel" data-i="${i}" style="cursor:pointer;margin-bottom:8px"><div class="row" style="gap:10px">${dial(x)}
       <div class="grow"><div class="row"><b>${esc(x.name)}</b><span class="grow"></span><span class="num xs muted">${fmt(norm(x.azimuth_from), 0)}°–${fmt(norm(x.azimuth_to), 0)}°</span></div>
       <div class="num xs muted">H ${fmt(x.bench_height, 0)} m · β ${fmt(x.face_angle_deg, 0)}° · berm ${fmt(x.berm_width, 1)} m</div>
       <div class="num xs muted">N=${x.berm_every_n} · IRA ${x.ira_max_deg == null ? "—" : `≤ ${fmt(x.ira_max_deg, 1)}°`}</div></div></div></div>`).join("");

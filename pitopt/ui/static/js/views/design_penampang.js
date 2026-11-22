@@ -20,7 +20,7 @@ export function render() {
   <div class="dd-sec">
     <div class="card"><div class="cardhead"><h2>Garis penampang</h2></div>
       <canvas id="dplan" class="plan" style="height:300px;cursor:crosshair"></canvas>
-      <p class="xs muted" style="margin:8px 0 12px">Seret di plan view untuk menarik garis A–A′; penampang mengikuti. ${sec ? `Panjang <b class="num">${fmt(sec.length, 0)} m</b>.` : ""}</p>
+      <p class="xs muted" style="margin:8px 0 12px"><span>Seret di plan view untuk menarik garis A–A′; penampang mengikuti.</span> ${sec ? `<span>Panjang <b class="num">${fmt(sec.length, 0)} m</b>.</span>` : ""}</p>
       <div class="navh" style="padding:0 0 6px">LEGENDA</div>
       <div class="legend" style="flex-direction:column;gap:5px"><div class="li"><i class="ln" style="border-color:var(--pit)"></i>Desain praktis (bench + berm)</div><div class="li"><i class="ln" style="border-top-style:dashed;border-color:var(--text)"></i>Shell optimasi</div>
         <div class="li"><i class="ln" style="border-color:var(--accent)"></i>Ramp memotong wall</div><div class="li"><i class="ln" style="border-color:var(--topo)"></i>Topografi</div></div>
@@ -30,7 +30,7 @@ export function render() {
     <div>
       <div class="card"><div class="cardhead"><h2>Penampang 1:1</h2><span class="lbl">skala jujur — tinggi dan lebar sama</span></div><div id="sec1" style="overflow:auto"><canvas id="dsec1"></canvas></div></div>
       <div class="card"><div class="cardhead"><h2>Penampang yang sama, VE ${fmt(D.ve, 1)}×</h2><span class="lbl">dinding tampak lebih curam dari sebenarnya</span><span class="grow"></span>
-        <span class="tabs">${[2, 3, 5].map((v) => `<button data-act="dVe" data-v="${v}" class="${D.ve === v ? "on" : ""}">${v}×</button>`).join("")}</span></div><div id="sec2"><canvas id="dsec2"></canvas></div>
+        <span class="tabs" role="tablist">${[2, 3, 5].map((v) => `<button role="tab" aria-selected="${D.ve === v}" data-act="dVe" data-v="${v}" class="${D.ve === v ? "on" : ""}">${v}×</button>`).join("")}</span></div><div id="sec2" style="overflow:auto"><canvas id="dsec2"></canvas></div>
         <p class="xs muted" style="margin:8px 0 0">Gunakan hanya untuk membaca berm dan ramp.</p></div>
     </div>
   </div>`);
@@ -63,7 +63,7 @@ export function mount() {
   c.onmouseup = () => { if (!drag) return; const [a, b] = drag; drag = null; if (Math.hypot(b[0] - a[0], b[1] - a[1]) > 20) loadSection(a, b); else draw(); };
   if (!D.line) { const [a, b] = defaultLine(); loadSection(a, b); return; }
   if (!D.section) return;
-  const w1 = Math.max(400, document.getElementById("sec1").clientWidth - 2), w2 = Math.max(400, document.getElementById("sec2").clientWidth - 2);
+  const w1 = Math.max(240, document.getElementById("sec1").clientWidth - 2), w2 = Math.max(240, document.getElementById("sec2").clientWidth - 2);
   const opts = { mode: D.color || "kadar", sectors: D.state.sectors, centre: D.result.centre, p1: D.line.p1, p2: D.line.p2 };
   drawSection(document.getElementById("dsec1"), D.section, D.topo, { ...opts, ve: 1, width: w1 });
   drawSection(document.getElementById("dsec2"), D.section, D.topo, { ...opts, ve: D.ve, width: w2 });

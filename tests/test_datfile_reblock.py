@@ -120,3 +120,19 @@ def test_the_mixed_block_takes_the_mass_weighted_grade_worked_by_hand(tmp_path):
     assert float(got["volume"].iloc[0]) == pytest.approx(400.0)           # 8 x 25 + 200
     classes = out.sort_values(["NORTH", "EAST"])["CLASS"].tolist()
     assert "TERTUNJUK" in classes                                       # the numbered labels counted as one class
+
+
+def test_reblock_supports_geosuite_comment_headers_and_extracts_crs_metadata(tmp_path):
+    frame = sub_celled()
+    path = tmp_path / "geosuite_subcelled.csv"
+    header_comments = (
+        "# GeoSuite Resource Model Export v1.2\n"
+        "# CRS: EPSG:32748 | Vertical Datum: EGM2008\n"
+    )
+    path.write_text(header_comments + frame.to_csv(index=False))
+    out, summary = reblock(spec(path))
+    assert len(out) == 4
+    assert summary["output_volume"] == pytest.approx(summary["source_volume"])
+    assert summary["crs"] == "EPSG:32748"
+    assert summary["vertical_datum"] == "EGM2008"
+

@@ -192,3 +192,45 @@ def test_replaced_optimisation_run_requires_regenerating_cached_design(api):
     assert 'Generate' in api('/api/design/export', {'project': PROJECT, 'scenario': SCENARIO}, expect=409)['error']
     assert generate(api)['status'] == 'done'
     assert api('/api/design/result?project=example_tin&scenario=project')['benches']
+
+
+def test_build_design_applies_domain_angles_when_no_manual_sectors():
+    import numpy as np
+    import pandas as pd
+
+    from pitopt.config import BermConfig, DesignConfig, DesignDetailConfig, ProjectConfig, RampConfig, SlopeConfig
+    from pitopt.core.design_detail.builder import build_design
+
+    xs = np.arange(-60.0, 61.0, 20.0)
+    ys = np.arange(-60.0, 61.0, 20.0)
+    zs = np.array([-5.0, 5.0])
+    rows = []
+    for z in zs:
+        for y in ys:
+            for x in xs:
+                dom = "weak" if y > 0 else "strong"
+                rows.append({
+                    "x": x, "y": y, "z": z, "dx": 20.0, "dy": 20.0, "dz": 10.0,
+                    "domain": dom, "rock_tonnes": 10000.0, "ore_tonnes": 0.0, "value": -1000.0, "destination": 0,
+                })
+    blocks = pd.DataFrame(rows)
+    in_pit = ((blocks["x"].abs() <= 20.0) & (blocks["y"].abs() <= 20.0) & (blocks["z"] == -5.0)) | (
+        (blocks["x"].abs() <= 40.0) & (blocks["y"].abs() <= 40.0) & (blocks["z"] == 5.0)
+    )
+    cfg = ProjectConfig.from_yaml(ROOT / "projects/example_tin/project.yaml")
+    cfg.slope = SlopeConfig(overall_angle_deg=45.0, domain_angles={"weak": 35.0, "strong": 50.0})
+    cfg.design = DesignConfig(
+        bench_height=10.0,
+        bench_face_angle_deg=70.0,
+        detail=DesignDetailConfig(
+            enabled=True,
+            berm=BermConfig(method="slope"),
+            ramp=RampConfig(enabled=False),
+        ),
+    )
+    detail = build_design(blocks, in_pit.to_numpy(), cfg)
+    by_name = {s.name: s for s in detail.sectors}
+    assert "weak" in by_name and "strong" in by_name
+    assert by_name["weak"].berm_width > by_name["strong"].berm_width
+    assert by_name["weak"].ira_deg == pytest.approx(35.0)
+    assert by_name["strong"].ira_deg == pytest.approx(50.0)

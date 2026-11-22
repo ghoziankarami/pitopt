@@ -19,7 +19,7 @@ A.manage = () => {
     <div class="fld" style="margin-top:14px"><label>Nama skenario ini</label><div class="row" style="gap:8px"><input type="text" id="mg-scen" style="flex:1" value="${esc(scenario?.label || "")}"><button class="btn" data-act="mgRename" data-kind="scenario">Simpan</button></div></div>
     <div class="card" style="margin-top:20px;border-color:var(--bad);background:var(--bad-bg)"><b class="bad">Hapus</b>
       <p class="small muted" style="margin:6px 0 10px">Penghapusan permanen dan tidak bisa dibatalkan. Anda akan melihat daftar berkas sebelum mengonfirmasi.</p>
-      <div class="row" style="gap:8px"><button class="btn" data-act="mgDelete" data-kind="scenario" ${project.scenarios.length < 2 ? "disabled title='Satu-satunya skenario; hapus proyeknya'" : ""}>Hapus skenario ini…</button><button class="btn" data-act="mgDelete" data-kind="project">Hapus proyek…</button></div></div>`, "");
+      <div class="row" style="gap:8px"><button class="btn" data-act="mgDelete" data-kind="scenario" ${project.scenarios.length < 2 ? 'disabled title="Satu-satunya skenario; hapus proyeknya"' : ""}>Hapus skenario ini…</button><button class="btn" data-act="mgDelete" data-kind="project">Hapus proyek…</button></div></div>`, "");
 };
 
 A.mgRename = async (el) => {

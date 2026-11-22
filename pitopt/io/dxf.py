@@ -100,7 +100,24 @@ def read_surface(path: str) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
     return elevation_from_points(read_surface_points(path))
 
 
-def write_surface(path: str, xs: np.ndarray, ys: np.ndarray, grid_z: np.ndarray, layer: str = "PIT_SURFACE") -> int:
+def read_surface_metadata(path: str) -> dict[str, str]:
+    """Read custom header metadata (such as PROJECT, CRS, VERTICAL_DATUM) from a DXF file."""
+    doc = ezdxf.readfile(path)
+    return {str(tag): str(value) for tag, value in doc.header.custom_vars}
+
+
+def write_surface(
+    path: str,
+    xs: np.ndarray,
+    ys: np.ndarray,
+    grid_z: np.ndarray,
+    layer: str = "PIT_SURFACE",
+    *,
+    project: str | None = None,
+    crs: str | None = None,
+    vertical_datum: str | None = None,
+    metadata: dict[str, str] | None = None,
+) -> int:
     """
     Write a gridded surface as 3DFACE triangles (two per grid cell).
 
@@ -108,6 +125,21 @@ def write_surface(path: str, xs: np.ndarray, ys: np.ndarray, grid_z: np.ndarray,
     NaN for nodes with no surface. Returns the number of faces written.
     """
     doc = ezdxf.new("R2010")
+    doc.units = ezdxf.units.M
+    header_vars: list[tuple[str, str]] = []
+    if project:
+        header_vars.append(("PROJECT", str(project)))
+    if crs:
+        header_vars.append(("CRS", str(crs)))
+    if vertical_datum:
+        header_vars.append(("VERTICAL_DATUM", str(vertical_datum)))
+    if metadata:
+        for key, value in metadata.items():
+            if value is not None:
+                header_vars.append((str(key), str(value)))
+    for tag, value in header_vars:
+        doc.header.custom_vars.append(tag, value)
+
     doc.layers.add(layer)
     msp = doc.modelspace()
     faces = 0

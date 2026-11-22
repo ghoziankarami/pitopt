@@ -101,7 +101,7 @@ def porphyry_demo_page(browser, demo_site):
     pg = browser.new_page(viewport={"width": 1440, "height": 1000})
     pg.set_default_timeout(45000)
     pg.add_init_script("localStorage.removeItem('pitopt-lang'); localStorage.removeItem('pitopt-scenario-v2')")
-    pg.goto(demo_site)
+    pg.goto(demo_site + "/demo")
     wait_for_app(pg)
     yield pg
     pg.close()
@@ -154,7 +154,7 @@ def demo_page(browser, demo_site):
     pg.problems = []
     pg.on("pageerror", lambda e: pg.problems.append(f"pageerror: {e}"))
     pg.add_init_script("localStorage.setItem('pitopt-scenario-v2','example_tin/project'); localStorage.removeItem('pitopt-lang'); localStorage.removeItem('pitopt-support-prompted')")
-    pg.goto(demo_site)
+    pg.goto(demo_site + "/demo")
     wait_for_app(pg)
     yield pg
     pg.close()
@@ -333,7 +333,7 @@ def test_public_demo_explains_local_upload_and_regenerates_a_sample_design(demo_
     page.click("button[data-act='manage']")                    # the demo cannot manage projects: it explains the local install
     page.wait_for_selector("main h1:has-text('Use your own data')")
     assert "Use your own data" in page.inner_text("main")
-    assert "does not accept uploads" in page.inner_text("main")
+    assert "run in the local desktop app" in page.inner_text("main")
     assert page.locator("main input[type='file']").count() == 0
     assert page.locator("main a", has_text="Local installation guide").get_attribute("href").endswith("docs/INSTALLATION.md")
 

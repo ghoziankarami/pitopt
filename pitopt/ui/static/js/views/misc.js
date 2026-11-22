@@ -24,10 +24,10 @@ export function mount(root, view) {
 function sensitivitas(r) {
   if (!r.sensitivity) return `<div class="page">${pageHead("Sensitivitas", "")}<div class="card"><div class="empty">Sensitivitas tidak dihitung di skenario ini. Aktifkan jadwal dan sensitivitas di Parameter.</div></div></div>`;
   const s = r.sensitivity, prods = Object.keys(s.per_product || {});
-  const tabs = ["all", ...prods].map((p) => `<button data-act="sensProd" data-v="${esc(p)}" class="${ui.sensProduct === p ? "on" : ""}">${p === "all" ? "Semua harga" : esc(p)}</button>`).join("");
+  const tabs = ["all", ...prods].map((p) => `<button role="tab" aria-selected="${ui.sensProduct === p}" data-act="sensProd" data-v="${esc(p)}" class="${ui.sensProduct === p ? "on" : ""}">${p === "all" ? "Semua harga" : esc(p)}</button>`).join("");
   const rows = (ui.sensProduct === "all" ? s.all : s.per_product[ui.sensProduct]);
   const be = s.breakeven;
-  return `<div class="page">${pageHead("Sensitivitas", "NPV pit terhadap faktor harga, pit dioptimasi ulang di tiap titik", `<div class="tabs">${tabs}</div>`)}
+  return `<div class="page">${pageHead("Sensitivitas", "NPV pit terhadap faktor harga, pit dioptimasi ulang di tiap titik", `<div class="tabs" role="tablist">${tabs}</div>`)}
   <div class="split"><div class="card"><div class="chart">${sensitivity(s, { w: 520, h: 300, perProduct: ui.sensProduct !== "all" ? ui.sensProduct : false })}</div>
     <p class="howto">${s.all.some((x) => x.npv < 0) ? `NPV negatif pada faktor harga ${s.all.filter((x) => x.npv < 0).map((x) => fmt(x.price_factor * 100, 0) + "%").join(", ")}. Pit final tetap; blok dinilai ulang pada harga itu.` : "NPV positif di seluruh rentang harga yang diuji."}</p></div>
   <div class="card flat"><div style="padding:14px 20px 4px"><h2>Tabel</h2></div><div style="overflow:auto"><table class="t"><thead><tr><th class="l">Faktor harga</th><th>Value jt</th><th>NPV jt</th>${ui.sensProduct === "all" ? "<th>Umpan Mt</th><th>Periode</th>" : ""}</tr></thead>
@@ -42,7 +42,7 @@ function data(r) {
   const rows = inp.map((x) => `<tr><td class="l">${esc(x.item)}</td><td class="l num">${esc(x.value)}</td><td class="l muted">${esc(x.unit)}</td></tr>`).join("");
   const src = [["Block model", S.raw?.block_model?.path], ["Topografi", S.raw?.surface?.path || S.raw?.surface?.topography]].filter((x) => x[1]);
   return `<div class="page">${pageHead("Data", "ringkasan input yang dibaca engine")}
-  <div class="split"><div class="card flat"><div style="padding:14px 20px 4px"><h2>Model blok</h2></div><table class="t"><tbody>${rows}</tbody></table></div>
+  <div class="split"><div class="card flat"><div style="padding:14px 20px 4px"><h2>Model blok</h2></div><div class="table-wrap"><table class="t"><tbody>${rows}</tbody></table></div></div>
   <div class="card"><h2>Berkas sumber</h2>${src.map(([k, v]) => `<div class="row small" style="padding:6px 0"><span class="muted" style="width:110px">${k}</span><span class="num">${esc(v)}</span></div>`).join("") || `<div class="muted small">–</div>`}
     <p class="xs muted">Path relatif terhadap folder proyek. Data mentah tidak diunggah; server hanya membaca dalam folder proyek.</p></div></div></div>`;
 }
@@ -63,7 +63,7 @@ function jalankan() {
   const j = S.job, { scenario } = scenarioMeta();
   const logBtn = `<button class="btn" data-act="showLog" ${S.results ? "" : "disabled"}>Log run</button>`;
   const runBtn = logBtn + `<button class="btn primary" data-act="runCurrent" ${j?.status === "running" ? "disabled" : ""}>Jalankan ${esc(scenario?.name || "")}</button>`;
-  if (!j) return `<div class="page">${pageHead("Jalankan", "optimasi, penjadwalan, dan verifikasi", runBtn)}<div class="card"><div class="empty">Belum ada run di sesi ini. ${S.results ? `Hasil terakhir: ${esc(S.results.meta.run_at || "")}, ${fmt(S.results.meta.elapsed_s, 0)} s.` : ""}<br><a data-act="showLog">Lihat log run terakhir</a></div></div></div>`;
+  if (!j) return `<div class="page">${pageHead("Jalankan", "optimasi, penjadwalan, dan verifikasi", runBtn)}<div class="card"><div class="empty">Belum ada run di sesi ini. ${S.results ? `<span>Hasil terakhir:</span> <span class="num">${esc(S.results.meta.run_at || "")}</span>, ${fmt(S.results.meta.elapsed_s, 0)} s.` : ""}<br><a data-act="showLog">Lihat log run terakhir</a></div></div></div>`;
   const st = j.stages || [];
   const stepper = st.map((n, i) => `<div class="step ${i < j.stage || j.status === "done" ? "done" : i === j.stage ? (j.status === "error" ? "err" : "cur") : ""}"><i>${i < j.stage || j.status === "done" ? "✓" : i + 1}</i><span>${esc(tr(n))}</span></div>`).join("");
   const cls = j.status === "error" ? "bad" : j.status === "done" ? "good" : "";
@@ -94,9 +94,9 @@ A.cmpPick = (el) => { el.checked ? ui.pick.add(el.dataset.id) : ui.pick.delete(e
 function ekspor(r) {
   const files = r.outputs;
   const size = (b) => (b > 1e6 ? fmt(b / 1e6, 1) + " MB" : fmt(b / 1e3, 0) + " kB");
-  const rows = files.map((f) => `<tr><td class="l"><input type="checkbox" data-act="filePick" data-f="${esc(f.name)}" ${ui.files.has(f.name) ? "checked" : ""}></td><td class="l num">${esc(f.name)}</td><td class="l">${esc(f.kind)}</td><td>${size(f.bytes)}</td><td><a data-act="download" data-file="${esc(f.name)}">Unduh</a></td></tr>`).join("");
+  const rows = files.map((f) => `<tr><td class="l"><input type="checkbox" aria-label="Pilih" data-act="filePick" data-f="${esc(f.name)}" ${ui.files.has(f.name) ? "checked" : ""}></td><td class="l num">${esc(f.name)}</td><td class="l">${esc(f.kind)}</td><td>${size(f.bytes)}</td><td><a data-act="download" data-file="${esc(f.name)}">Unduh</a></td></tr>`).join("");
   return `<div class="page">${pageHead("Ekspor", "berkas hasil run", `<button class="btn" data-act="packageSel" ${ui.files.size ? "" : "disabled"}>Paket terpilih (${ui.files.size})</button><button class="btn primary" data-act="package">Paket lengkap (zip)</button>`)}
-  <div class="card flat"><table class="t"><thead><tr><th></th><th class="l">Berkas</th><th class="l">Jenis</th><th>Ukuran</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="card flat"><div class="table-wrap"><table class="t"><thead><tr><th></th><th class="l">Berkas</th><th class="l">Jenis</th><th>Ukuran</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>
   <p class="xs muted">DXF: pit shell &amp; face position per pushback/periode · CSV: blok + shell + pushback + periode · Excel/PDF: laporan · HTML: viewer 3D mandiri.</p></div>`;
 }
 A.filePick = (el) => { el.checked ? ui.files.add(el.dataset.f) : ui.files.delete(el.dataset.f); notify(); };

@@ -11,6 +11,7 @@ tell a checked number from a placeholder.
 from __future__ import annotations
 
 from datetime import date
+from xml.sax.saxutils import escape
 
 import pandas as pd
 from reportlab.lib import colors
@@ -88,7 +89,10 @@ def _table(frame: pd.DataFrame, formats: dict | None = None, max_rows: int = 40)
 
 
 def _key_values(pairs: list[tuple[str, str]]) -> Table:
-    table = Table([[Paragraph(f"<b>{k}</b>", BODY), Paragraph(v, BODY)] for k, v in pairs], colWidths=[62 * mm, 105 * mm])
+    table = Table(
+        [[Paragraph(f"<b>{escape(str(k))}</b>", BODY), Paragraph(escape(str(v)), BODY)] for k, v in pairs],
+        colWidths=[68 * mm, AVAILABLE_WIDTH - 68 * mm],
+    )
     table.setStyle(
         TableStyle(
             [
@@ -101,6 +105,35 @@ def _key_values(pairs: list[tuple[str, str]]) -> Table:
         )
     )
     return table
+
+
+def _provenance_table(provenance: dict[str, dict]) -> Table:
+    header = [Paragraph("<b>Parameter</b>", BODY), Paragraph("<b>Source</b>", BODY), Paragraph("<b>Note / Reference</b>", BODY)]
+    rows = [header]
+    for param, info in sorted(provenance.items()):
+        if isinstance(info, dict):
+            source = str(info.get("source", "unspecified"))
+            note = str(info.get("note") or info.get("ref") or "")
+        else:
+            source = str(info)
+            note = ""
+        rows.append([
+            Paragraph(escape(str(param)), BODY),
+            Paragraph(escape(source), BODY),
+            Paragraph(escape(note), BODY),
+        ])
+    widths = [78 * mm, 32 * mm, AVAILABLE_WIDTH - 110 * mm]
+    table = Table(rows, colWidths=widths, repeatRows=1, hAlign="LEFT")
+    table.setStyle(TABLE_STYLE)
+    return table
+
+
+def _lookup_param(parameters: list[tuple[str, str]], *keys: str) -> str | None:
+    lowered = {k.lower() for k in keys}
+    for k, v in parameters:
+        if str(k).strip().lower() in lowered and str(v).strip():
+            return str(v).strip()
+    return None
 
 
 def write_report(
@@ -116,6 +149,10 @@ def write_report(
     pushbacks: pd.DataFrame | None = None,
     figures: list[tuple[str, str]] | None = None,
     plan_label: str = "",
+    crs: str | None = None,
+    vertical_datum: str | None = None,
+    provenance: dict | None = None,
+    design_reconciliation: list[tuple[str, str]] | dict | None = None,
 ) -> None:
     doc = SimpleDocTemplate(
         path,
@@ -128,16 +165,37 @@ def write_report(
     )
     story: list = []
 
-    story.append(Paragraph(f"{project_name} — Ultimate Pit Optimisation", TITLE))
+    resolved_crs = crs or _lookup_param(parameters, "crs", "coordinate reference system")
+    resolved_datum = vertical_datum or _lookup_param(parameters, "vertical datum", "vertical_datum")
+
+    story.append(Paragraph(f"{escape(project_name)} — Ultimate Pit Optimisation", TITLE))
     story.append(Paragraph(f"NetworkX preflow-push maximum closure · generated {date.today().isoformat()}", SUBTITLE))
+    story.append(
+        Paragraph(
+            f"<b>Coordinate System (CRS):</b> {escape(resolved_crs or 'Local / unspecified')} &nbsp;&nbsp;|&nbsp;&nbsp; "
+            f"<b>Vertical Datum:</b> {escape(resolved_datum or 'Local / unspecified')}",
+            BODY,
+        )
+    )
+    story.append(Spacer(1, 6))
 
     story.append(Paragraph("Result", HEADING))
     story.append(_key_values(headline))
 
+    if design_reconciliation:
+        recon_pairs = (
+            [(str(k).replace("_", " ").title(), str(v)) for k, v in design_reconciliation.items()]
+            if isinstance(design_reconciliation, dict)
+            else list(design_reconciliation)
+        )
+        if recon_pairs:
+            story.append(Paragraph("Practical Design Reconciliation", HEADING))
+            story.append(_key_values(recon_pairs))
+
     if warnings:
         story.append(Paragraph("Warnings", HEADING))
         for warning in warnings:
-            story.append(Paragraph(f"• {warning}", WARN))
+            story.append(Paragraph(f"• {escape(str(warning))}", WARN))
 
     story.append(PageBreak())
 
@@ -270,11 +328,26 @@ def write_report(
         story.append(Image(image_path, width=265 * mm, height=160 * mm, kind="proportional"))
 
     story.append(PageBreak())
-    story.append(Paragraph("Parameters", HEADING))
-    story.append(_key_values(parameters))
+    story.append(Paragraph("Parameters & Coordinate System", HEADING))
+    coord_pairs = [
+        ("Coordinate System (CRS)", resolved_crs or "Local / unspecified"),
+        ("Vertical Datum", resolved_datum or "Local / unspecified"),
+    ]
+    story.append(_key_values(coord_pairs + list(parameters)))
+
+    if provenance:
+        counts: dict[str, int] = {}
+        for info in provenance.values():
+            src = str(info.get("source", "unspecified")) if isinstance(info, dict) else str(info)
+            counts[src] = counts.get(src, 0) + 1
+        summary_text = ", ".join(f"{k}: {v}" for k, v in sorted(counts.items()))
+        story.append(Paragraph("Parameter Provenance", HEADING))
+        story.append(Paragraph(f"Provenance summary ({len(provenance)} tracked): {escape(summary_text)}", BODY))
+        story.append(Spacer(1, 4))
+        story.append(_provenance_table(provenance))
 
     story.append(Paragraph("Assumptions and limitations", HEADING))
     for assumption in assumptions:
-        story.append(Paragraph(f"• {assumption}", BODY))
+        story.append(Paragraph(f"• {escape(str(assumption))}", BODY))
 
     doc.build(story)

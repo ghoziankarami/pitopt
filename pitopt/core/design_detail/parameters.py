@@ -18,7 +18,11 @@ needs a ramp and is computed where the ramp is built.
 from __future__ import annotations
 
 import math
+from collections import Counter
 from dataclasses import dataclass
+
+import numpy as np
+import pandas as pd
 
 from ...config import DesignConfig
 from .config import BermConfig, SectorConfig
@@ -98,23 +102,104 @@ def inter_ramp_angle_deg(bench_height: float, face_angle_deg: float, berm: float
     return math.degrees(math.atan2(berm_every_n * bench_height, berm_every_n * run + berm))
 
 
-def resolve_sectors(design: DesignConfig, overall_angle_deg: float) -> tuple[list[SectorGeometry], list[str]]:
+def _domain_sectors_from_blocks(
+    blocks: pd.DataFrame,
+    in_pit: np.ndarray | None,
+    domain_angles: dict,
+    overall_angle_deg: float,
+    n_bins: int = 36,
+) -> list[tuple[SectorConfig, float]]:
+    """Map spatial block domains around the pit centre to contiguous azimuth sectors."""
+    sub = blocks.loc[in_pit] if in_pit is not None else blocks
+    if sub.empty:
+        return [(SectorConfig(name="Semua", azimuth_from=0.0, azimuth_to=360.0), overall_angle_deg)]
+
+    cx, cy = float(sub["x"].mean()), float(sub["y"].mean())
+    dx = sub["x"].to_numpy(dtype=float) - cx
+    dy = sub["y"].to_numpy(dtype=float) - cy
+    bearings = np.degrees(np.arctan2(dx, dy)) % 360.0
+    bin_step = 360.0 / n_bins
+    bin_ids = (bearings // bin_step).astype(int) % n_bins
+    domains = sub["domain"].to_numpy()
+
+    bin_labels: list[tuple[str, float] | None] = [None] * n_bins
+    for b in range(n_bins):
+        mask = bin_ids == b
+        if not mask.any():
+            continue
+        dom = Counter(domains[mask]).most_common(1)[0][0]
+        if dom in domain_angles:
+            bin_labels[b] = (str(dom), float(domain_angles[dom]))
+        else:
+            bin_labels[b] = ("Semua", overall_angle_deg)
+
+    populated = [i for i, v in enumerate(bin_labels) if v is not None]
+    if not populated:
+        return [(SectorConfig(name="Semua", azimuth_from=0.0, azimuth_to=360.0), overall_angle_deg)]
+    for b in range(n_bins):
+        if bin_labels[b] is None:
+            nearest = min(populated, key=lambda p: min((p - b) % n_bins, (b - p) % n_bins))
+            bin_labels[b] = bin_labels[nearest]
+
+    runs: list[list] = []
+    for b, label in enumerate(bin_labels):
+        assert label is not None
+        if runs and runs[-1][0] == label:
+            runs[-1][2] = (b + 1) * bin_step
+        else:
+            runs.append([label, b * bin_step, (b + 1) * bin_step])
+
+    if len(runs) > 1 and runs[0][0] == runs[-1][0]:
+        runs[0][1] = runs[-1][1]
+        runs.pop()
+
+    if len(runs) == 1:
+        label, _, _ = runs[0]
+        return [(SectorConfig(name=label[0], azimuth_from=0.0, azimuth_to=360.0), label[1])]
+
+    return [
+        (SectorConfig(name=label[0], azimuth_from=az_from % 360.0, azimuth_to=az_to % 360.0 or 360.0), label[1])
+        for label, az_from, az_to in runs
+    ]
+
+
+def resolve_sectors(
+    design: DesignConfig,
+    overall_angle_deg: float,
+    domain_angles: dict | None = None,
+    blocks: pd.DataFrame | None = None,
+    in_pit: np.ndarray | None = None,
+) -> tuple[list[SectorGeometry], list[str]]:
     """Every sector with each unset field filled from the design block.
 
     A project with no sectors is one sector all the way round, so the
     uniform pit is the same code path as the sectored one rather than a
-    second implementation that could drift from it."""
+    second implementation that could drift from it. When no manual sectors
+    are configured and `domain_angles` is supplied, domains are mapped to
+    sectors with their respective overall slope angles."""
     detail = design.detail
     limits = detail.limits
-    configured = detail.sectors or [SectorConfig(name="Semua", azimuth_from=0.0, azimuth_to=360.0)]
+    if detail.sectors:
+        configured = [(s, overall_angle_deg) for s in detail.sectors]
+    elif domain_angles:
+        if blocks is not None and "domain" in blocks.columns:
+            configured = _domain_sectors_from_blocks(blocks, in_pit, domain_angles, overall_angle_deg)
+        else:
+            step = 360.0 / len(domain_angles)
+            configured = [
+                (SectorConfig(name=str(dom), azimuth_from=i * step, azimuth_to=(i + 1) * step), float(angle))
+                for i, (dom, angle) in enumerate(domain_angles.items())
+            ]
+    else:
+        configured = [(SectorConfig(name="Semua", azimuth_from=0.0, azimuth_to=360.0), overall_angle_deg)]
 
     sectors, notes = [], []
-    for s in configured:
+    for s, sector_overall in configured:
         height = s.bench_height if s.bench_height is not None else design.bench_height
         face = s.face_angle_deg if s.face_angle_deg is not None else design.bench_face_angle_deg
         n = s.berm_every_n_benches if s.berm_every_n_benches is not None else detail.berm_every_n_benches
         criterion = s.berm or detail.berm
-        width, note = berm_width(criterion, height, face, n, overall_angle_deg)
+        width, note = berm_width(criterion, height, face, n, sector_overall)
         if note:
             notes.append(f"{s.name or 'sector'}: {note}")
         sectors.append(SectorGeometry(

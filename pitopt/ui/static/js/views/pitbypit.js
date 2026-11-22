@@ -23,8 +23,8 @@ export function render(view) {
     <p class="howto">Nilai tak terdiskonto memuncak di RF ${fmt(fp.peak_undiscounted?.rf, 2)} — itu definisi, bukan rekomendasi. Pit final diambil dari NPV terdiskonto: shell terkecil yang masih dalam ${fmt(fp.tolerance * 100, 0)}% dari NPV rata-rata maksimum.</p>
     <div class="chart">${pitByPit(pend != null ? rows.map((x) => ({ ...x, final: Math.abs(x.rf - pend) < 1e-9 })) : rows, { w: 1140, h: 460 })}</div>${pitLegend()}</div>`;
   const pick = pend != null && Math.abs(pend - fp.rf) > 1e-9
-    ? `<div class="card" style="border-color:var(--accent);background:var(--accent-soft)"><div class="row"><div class="grow small"><b>Pit final akan dipindah ke RF ${fmt(pend, 2)}.</b> Pushback, jadwal, sensitivitas, dan desain harus dihitung ulang untuk pit yang baru.</div><button class="btn" data-act="cancelPick">Batal</button><button class="btn primary" data-act="rerunFinal">Jalankan ulang dengan RF ${fmt(pend, 2)}</button></div></div>` : "";
-  const cards = `<div class="card"><div class="grid" style="grid-template-columns:1.05fr 1fr 1fr 1fr;align-items:stretch">
+    ? `<div class="card" style="border-color:var(--accent);background:var(--accent-soft)"><div class="row" style="flex-wrap:wrap;gap:10px"><div class="grow small"><b>Pit final akan dipindah ke RF ${fmt(pend, 2)}.</b> Pushback, jadwal, sensitivitas, dan desain harus dihitung ulang untuk pit yang baru.</div><button class="btn" data-act="cancelPick">Batal</button><button class="btn primary" data-act="rerunFinal">Jalankan ulang dengan RF ${fmt(pend, 2)}</button></div></div>` : "";
+  const cards = `<div class="card"><div class="grid g-pitcmp">
     <div><div class="navh" style="padding:0 0 6px">PIT FINAL TERPILIH</div>
       <div><span class="num" style="font-size:32px;font-weight:600">RF ${fmt(chosen.rf, 2)}</span><span class="muted num" style="margin-left:10px">shell ${chosen.shell} dari ${rows.length}</span></div>
       <p class="small" style="line-height:1.5;margin:10px 0 14px">${pend != null && Math.abs(pend - fp.rf) > 1e-9 ? "Pilihan manual — belum dijalankan." : `Rekomendasi engine: ${esc(tr(fp.reason))}.`}</p>

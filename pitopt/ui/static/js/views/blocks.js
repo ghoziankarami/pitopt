@@ -33,19 +33,19 @@ export function render() {
   if (st.err && !st.meta) return `<div class="page">${pageHead("Model Blok", "")}<div class="card"><div class="empty">${esc(st.err)}</div></div></div>`;
   if (!st.meta) { ensureMeta(); return `<div class="page">${pageHead("Model Blok", "memuat model blok…")}</div>`; }
   const m = st.meta, a = attrMeta(), n = size();
-  const axisTabs = [["z", "Plan per bench"], ["y", "Penampang E–W"], ["x", "Penampang N–S"]].map(([k, l]) => `<button data-act="bAxis" data-v="${k}" class="${st.axis === k ? "on" : ""}">${l}</button>`).join("");
+  const axisTabs = [["z", "Plan per bench"], ["y", "Penampang E–W"], ["x", "Penampang N–S"]].map(([k, l]) => `<button role="tab" aria-selected="${st.axis === k}" data-act="bAxis" data-v="${k}" class="${st.axis === k ? "on" : ""}">${l}</button>`).join("");
   const attrOpts = m.attrs.map((x) => `<option value="${x.key}" ${x.key === st.attr ? "selected" : ""}>${esc(x.label)}</option>`).join("");
   const where = st.slice && st.slice.coord != null
     ? (st.axis === "z" ? `RL ${fmt(st.slice.coord, 1)} m` : st.axis === "y" ? `Northing ${fmt(st.slice.coord, 0)}` : `Easting ${fmt(st.slice.coord, 0)}`) : "";
-  return `<div class="page">${pageHead("Model Blok", `${fmtInt(m.blocks)} blok · ${m.nx}×${m.ny}×${m.nz} · ${fmt(m.dx, 0)}×${fmt(m.dy, 0)}×${fmt(m.dz, 0)} m — data hasil run, bukan model mentah`, `<div class="tabs">${axisTabs}</div>`)}
-  <div class="card"><div class="row" style="flex-wrap:wrap;gap:16px">
-    <div class="field"><label>Warnai dengan</label><select data-on="bAttr">${attrOpts}</select></div>
-    <div class="row grow" style="gap:10px;min-width:260px"><button class="btn" data-act="bStep" data-d="-1">◀</button><input type="range" min="0" max="${n - 1}" value="${st.index}" data-input="bIndex" style="flex:1"><button class="btn" data-act="bStep" data-d="1">▶</button>
-      <b class="num" id="bwhere" style="min-width:150px">${st.axis === "z" ? "Bench" : "Irisan"} ${st.index + 1}/${n} ${where ? "· " + where : ""}</b><button class="btn" data-act="bPlay">${st.playing ? "Berhenti" : "Putar"}</button></div></div>
-    ${st.axis !== "z" ? `<div class="row small muted" style="margin-top:8px;gap:6px">Skala vertikal: ${[1, 2, 3, 5].map((v) => `<button class="btn ${S.ve === v ? "primary" : ""}" data-act="ve" data-v="${v}">${v}×</button>`).join("")}</div>` : ""}</div>
+  return `<div class="page">${pageHead("Model Blok", `${fmtInt(m.blocks)} blok · ${m.nx}×${m.ny}×${m.nz} · ${fmt(m.dx, 0)}×${fmt(m.dy, 0)}×${fmt(m.dz, 0)} m — data hasil run, bukan model mentah`, `<div class="tabs" role="tablist">${axisTabs}</div>`)}
+  <div class="card"><div class="row" style="flex-wrap:wrap;gap:12px 16px">
+    <div class="field" style="max-width:100%"><label for="battr">Warnai dengan</label><select id="battr" data-on="bAttr">${attrOpts}</select></div>
+    <div class="row" style="gap:10px;flex:1 1 260px;min-width:0;max-width:100%;flex-wrap:wrap"><button class="btn" data-act="bStep" data-d="-1" aria-label="Sebelumnya">◀</button><input type="range" min="0" max="${n - 1}" value="${st.index}" data-input="bIndex" aria-label="Irisan" style="flex:1 1 80px;min-width:60px"><button class="btn" data-act="bStep" data-d="1" aria-label="Berikutnya">▶</button>
+      <b class="num" id="bwhere" style="min-width:0">${st.axis === "z" ? "Bench" : "Irisan"} ${st.index + 1}/${n} ${where ? "· " + where : ""}</b><button class="btn" data-act="bPlay">${st.playing ? "Berhenti" : "Putar"}</button></div></div>
+    ${st.axis !== "z" ? `<div class="row small muted" style="margin-top:8px;gap:6px;flex-wrap:wrap">Skala vertikal: ${[1, 2, 3, 5].map((v) => `<button class="btn ${S.ve === v ? "primary" : ""}" data-act="ve" data-v="${v}">${v}×</button>`).join("")}</div>` : ""}</div>
   <div class="card" style="margin-top:16px"><div class="row" style="align-items:flex-start;gap:20px;flex-wrap:wrap">
-    <div style="flex:1;min-width:0;overflow:auto"><canvas id="bcanvas" class="plan" style="cursor:crosshair"></canvas><div id="bhover" class="num small muted" style="height:20px;margin-top:6px"></div></div>
-    <div style="width:220px">${legend(a)}<p class="xs muted" style="margin-top:14px">Skala warna memakai rentang seluruh model, bukan hanya irisan ini, sehingga warna sebanding antar irisan.</p>
+    <div style="flex:1 1 260px;min-width:0;overflow:auto"><canvas id="bcanvas" class="plan" style="cursor:crosshair"></canvas><div id="bhover" class="num small muted" style="min-height:20px;margin-top:6px"></div></div>
+    <div style="flex:0 1 220px;min-width:0">${legend(a)}<p class="xs muted" style="margin-top:14px">Skala warna memakai rentang seluruh model, bukan hanya irisan ini, sehingga warna sebanding antar irisan.</p>
       ${st.slice ? `<p class="xs muted">${fmtInt(st.slice.count)} blok di irisan ini.</p>` : ""}${st.err ? `<p class="small bad">${esc(st.err)}</p>` : ""}</div></div></div></div>`;
 }
 

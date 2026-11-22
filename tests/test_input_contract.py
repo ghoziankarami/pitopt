@@ -109,3 +109,96 @@ def test_source_row_identity_survives_clipping_and_does_not_overwrite_a_grade(tm
     assert loaded[row_field].tolist() == [1, 2]
     clipped = clip_to_surface(loaded, lambda x, y: np.zeros(len(x)))
     assert clipped[row_field].tolist() == [2]
+
+
+def test_geosuite_comment_headers_load_and_sentinel_999_gives_actionable_error(tmp_path):
+    path = tmp_path / 'geosuite_export.csv'
+    path.write_text(
+        '# GeoSuite Resource Model Export v1.2\n'
+        '# CRS: EPSG:32748 | Vertical Datum: EGM2008\n'
+        'X,Y,Z,DX,DY,DZ,SG,AU_GPT,DOMAIN,CLASS\n'
+        '100,200,50,10,10,5,2.6,1.25,OX,Measured\n'
+        '110,200,50,10,10,5,2.6,0.85,OX,Indicated\n'
+    )
+    loaded = load_block_model(
+        BlockModelConfig(
+            str(path),
+            x_col='X', y_col='Y', z_col='Z',
+            dx_col='DX', dy_col='DY', dz_col='DZ',
+            density_col='SG', grade_col='AU_GPT',
+            domain_col='DOMAIN', class_col='CLASS',
+        )
+    )
+    assert len(loaded) == 2
+    assert loaded['AU_GPT'].tolist() == [1.25, 0.85]
+    assert loaded['domain'].tolist() == ['OX', 'OX']
+
+    bad_path = tmp_path / 'geosuite_unestimated.csv'
+    bad_path.write_text(
+        '# GeoSuite Resource Model Export\n'
+        'X,Y,Z,AU_GPT\n'
+        '100,200,50,1.25\n'
+        '110,200,50,-999\n'
+    )
+    with pytest.raises(ValueError, match='-999'):
+        load_block_model(BlockModelConfig(str(bad_path), grade_col='AU_GPT'))
+
+
+def test_unestimated_action_drop_filters_sentinel_999_and_records_count(tmp_path):
+    path = tmp_path / 'geosuite_drop.csv'
+    path.write_text(
+        '# GeoSuite Resource Model Export v1.2\n'
+        '# CRS: EPSG:32748 | Vertical Datum: EGM2008\n'
+        'X,Y,Z,AU_GPT,VOL\n'
+        '100,200,50,1.25,500\n'
+        '110,200,50,-999,0\n'
+        '120,200,50,0.85,500\n'
+    )
+    loaded = load_block_model(
+        BlockModelConfig(
+            str(path),
+            grade_col='AU_GPT',
+            volume_col='VOL',
+            unestimated_action='drop',
+        )
+    )
+    assert len(loaded) == 2
+    assert loaded['AU_GPT'].tolist() == [1.25, 0.85]
+    assert loaded.attrs['unestimated_dropped'] == 1
+    assert loaded[loaded.attrs['source_row_field']].tolist() == [1, 3]
+
+
+def test_unestimated_action_zero_waste_zeroes_sentinel_and_forces_waste(tmp_path):
+    path = tmp_path / 'geosuite_zero_waste.csv'
+    path.write_text(
+        '# GeoSuite Resource Model Export v1.2\n'
+        'X,Y,Z,AU_GPT\n'
+        '100,200,50,1.50\n'
+        '110,200,50,-999\n'
+    )
+    loaded = load_block_model(
+        BlockModelConfig(
+            str(path),
+            grade_col='AU_GPT',
+            unestimated_action='zero_waste',
+        )
+    )
+    assert len(loaded) == 2
+    assert loaded['AU_GPT'].tolist() == [1.5, 0.0]
+    assert loaded['is_ore_domain'].tolist() == [True, False]
+    assert loaded.attrs['unestimated_zeroed'] == 1
+
+
+def test_unestimated_action_invalid_value_is_rejected(tmp_path):
+    path = tmp_path / 'valid.csv'
+    path.write_text('X,Y,Z,AU_GPT\n100,200,50,1.50\n')
+    with pytest.raises(ValueError, match='unestimated_action'):
+        load_block_model(
+            BlockModelConfig(
+                str(path),
+                grade_col='AU_GPT',
+                unestimated_action='ignore',
+            )
+        )
+
+

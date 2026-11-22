@@ -194,6 +194,9 @@ def main(argv: list[str] | None = None) -> int:
     reblock_parser.add_argument("--no-topo", action="store_true", help="skip the top-of-model surface DXF")
     reblock_parser.set_defaults(func=_cmd_reblock)
 
+    mcp_parser = sub.add_parser("mcp", help="start the Model Context Protocol (MCP) stdio server")
+    mcp_parser.set_defaults(func=lambda _a: __import__("pitopt.mcp_server", fromlist=["main"]).main())
+
     args = parser.parse_args(argv)
     return args.func(args)
 

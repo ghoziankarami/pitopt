@@ -9,7 +9,11 @@ template alone, before any large array exists.
 """
 from __future__ import annotations
 
+import ctypes
 import os
+import platform
+import re
+import subprocess
 
 BYTES_PER_ARC = 620          # per arc of the template upper bound (edge blocks have fewer): 9.5 GB / 15.1 M measured
 BYTES_PER_BLOCK = 4_000
@@ -20,8 +24,54 @@ class ModelTooLarge(ValueError):
     """The precedence graph would not fit in the memory available."""
 
 
+def _macos_available_memory_bytes() -> int | None:
+    """Available (free + inactive + speculative + purgeable) RAM on macOS."""
+    try:
+        out = subprocess.check_output(["vm_stat"], text=True, timeout=2)
+        page_match = re.search(r"page size of (\d+) bytes", out)
+        page_size = int(page_match.group(1)) if page_match else 4096
+        pages = 0
+        for key in ("Pages free", "Pages inactive", "Pages speculative", "Pages purgeable"):
+            m = re.search(rf"^{re.escape(key)}:\s+(\d+)\.", out, re.M)
+            if m:
+                pages += int(m.group(1))
+        if pages > 0:
+            return pages * page_size
+    except Exception:
+        pass
+    try:
+        return int(os.sysconf("SC_PHYS_PAGES")) * int(os.sysconf("SC_PAGE_SIZE"))
+    except (ValueError, OSError, AttributeError):
+        return None
+
+
+def _windows_available_memory_bytes() -> int | None:
+    """Available physical RAM on native Windows via GlobalMemoryStatusEx."""
+    try:
+        class MEMORYSTATUSEX(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        stat = MEMORYSTATUSEX()
+        stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat)):  # type: ignore[attr-defined]
+            return int(stat.ullAvailPhys)
+    except Exception:
+        pass
+    return None
+
+
 def available_memory_bytes() -> int | None:
-    """MemAvailable from the kernel (Linux / WSL); None where it cannot be read."""
+    """Available physical memory across Linux/WSL (/proc/meminfo), macOS (vm_stat), and Windows."""
     try:
         with open("/proc/meminfo") as f:
             for line in f:
@@ -29,7 +79,15 @@ def available_memory_bytes() -> int | None:
                     return int(line.split()[1]) * 1024
     except OSError:
         pass
-    return None
+    sys_name = platform.system()
+    if sys_name == "Darwin":
+        return _macos_available_memory_bytes()
+    if sys_name == "Windows":
+        return _windows_available_memory_bytes()
+    try:
+        return int(os.sysconf("SC_AVPHYS_PAGES")) * int(os.sysconf("SC_PAGE_SIZE"))
+    except (ValueError, OSError, AttributeError):
+        return None
 
 
 def estimate_solver_bytes(n_blocks: int, arcs_upper_bound: int) -> int:

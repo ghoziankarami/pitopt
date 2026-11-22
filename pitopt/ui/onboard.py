@@ -44,6 +44,17 @@ def safe_name(name: str) -> str:
     return base
 
 
+def assert_safe_data_path(path: Path, base_dir: Path | None = None) -> Path:
+    """Reject symlinks or paths that escape the project/data directory."""
+    anchor = (base_dir or path.parent).resolve()
+    resolved = path.resolve()
+    if path.is_symlink() and not resolved.is_relative_to(anchor):
+        raise PermissionError(f"symlink keluar direktori proyek tidak diizinkan: {path.name}")
+    if not resolved.is_relative_to(anchor):
+        raise PermissionError(f"path di luar direktori yang diizinkan: {path.name}")
+    return resolved
+
+
 def slugify(text: str) -> str:
     slug = re.sub(r"[^0-9A-Za-z_-]+", "_", text.strip()).strip("_").lower()
     if not slug:
@@ -82,19 +93,22 @@ def _spacing(values: np.ndarray) -> tuple[float | None, bool]:
 
 
 def inspect_csv(path: Path) -> dict:
-    head = pd.read_csv(path, nrows=8)
+    from ..io.blockmodel import parse_csv_comment_metadata
+
+    head = pd.read_csv(path, nrows=8, comment="#")
     columns = list(head.columns)
     numeric = [c for c in columns if pd.api.types.is_numeric_dtype(head[c])]
     guess = {k: _match(columns, v) for k, v in _GUESS.items()}
     coords = [guess[k] for k in ("x", "y", "z")]
     info: dict = {"kind": "block_model", "columns": columns, "numeric": numeric, "guess": guess,
                   "preview": head.head(5).astype(object).where(head.head(5).notna(), None).values.tolist(), "warnings": []}
+    info.update(parse_csv_comment_metadata(path))
     if not all(coords):
         info["warnings"].append("Kolom koordinat X/Y/Z tidak terdeteksi otomatis — pilih manual.")
-        info["rows"] = int(sum(1 for _ in open(path, "rb")) - 1)
+        info["rows"] = int(sum(1 for line in open(path, "rb") if line.strip() and not line.lstrip().startswith(b"#")) - 1)
         return info
 
-    xyz = pd.read_csv(path, usecols=coords)
+    xyz = pd.read_csv(path, usecols=coords, comment="#")
     info["rows"] = int(len(xyz))
     info["extent"] = {k: [float(xyz[c].min()), float(xyz[c].max())] for k, c in zip("xyz", coords)}
     size, regular = {}, True
@@ -108,7 +122,7 @@ def inspect_csv(path: Path) -> dict:
                                 "Jalankan reblock lebih dulu supaya precedence lereng benar.")
     size_cols = [guess[k] for k in ("dx", "dy", "dz") if guess[k]]
     if size_cols:
-        sizes = pd.read_csv(path, usecols=size_cols)
+        sizes = pd.read_csv(path, usecols=size_cols, comment="#")
         if any(sizes[c].nunique() > 1 for c in size_cols):
             info["regular"] = False
             info["variable_size"] = True
@@ -117,9 +131,50 @@ def inspect_csv(path: Path) -> dict:
         info["warnings"].append("Ada koordinat blok ganda.")
     others = [c for c in numeric if c not in coords and c not in [guess[k] for k in ("dx", "dy", "dz")]]
     if others:
-        table = pd.read_csv(path, usecols=others)
+        table = pd.read_csv(path, usecols=others, comment="#")
         info["stats"] = {c: [float(table[c].min()), float(table[c].max())] for c in others}
+        sentinel_cols = [c for c in others if (table[c] == -999).any()]
+        if sentinel_cols:
+            info["warnings"].append(
+                f"Terdeteksi nilai sentinel -999 (blok belum terestimasi) pada kolom {', '.join(sentinel_cols)} — "
+                "saring baris unestimated atau jalankan reblock sebelum optimasi."
+            )
+    if all(size.get(k) for k in ("x", "y", "z")):
+        try:
+            info["ram_default"] = estimate_ram(info["rows"], float(size["x"]), float(size["y"]), float(size["z"]), 45.0)
+        except ValueError:
+            pass
     return info
+
+
+def estimate_ram(rows: int, dx: float, dy: float, dz: float, slope_angle: float = 45.0) -> dict:
+    """Instant pre-run solver RAM estimate from block count, block size, and slope angle."""
+    from ..core.limits import SAFETY, available_memory_bytes, estimate_solver_bytes
+    from ..core.precedence import auto_bench_levels, cone_offsets
+
+    if rows <= 0:
+        raise ValueError("Jumlah blok harus > 0")
+    if dx <= 0 or dy <= 0 or dz <= 0:
+        raise ValueError("Ukuran blok (dx, dy, dz) harus > 0")
+    if not (0.0 < slope_angle < 90.0):
+        raise ValueError("Sudut lereng overall harus di antara 0° dan 90°")
+
+    levels = auto_bench_levels(float(slope_angle), min(float(dx), float(dy)), float(dz))
+    template_arcs = len(cone_offsets(float(slope_angle), float(dx), float(dy), float(dz), levels))
+    arcs_upper_bound = int(rows) * int(template_arcs)
+    need_bytes = estimate_solver_bytes(int(rows), arcs_upper_bound)
+    avail_bytes = available_memory_bytes()
+    fits = True if avail_bytes is None else (need_bytes <= SAFETY * avail_bytes)
+    ratio = (need_bytes / avail_bytes) if (avail_bytes and avail_bytes > 0) else None
+    status = "block" if not fits else ("warn" if (ratio is not None and ratio > 0.6) else "ok")
+    return {
+        "blocks": int(rows),
+        "arcs_upper_bound": arcs_upper_bound,
+        "need_gb": round(need_bytes / 1e9, 3),
+        "available_gb": round(avail_bytes / 1e9, 2) if avail_bytes is not None else None,
+        "fits": fits,
+        "status": status,
+    }
 
 
 def inspect_surface(path: Path) -> dict:
@@ -135,13 +190,14 @@ def inspect_surface(path: Path) -> dict:
                             "dipakai; permukaan datar di RL 0 akan memotong model di elevasi itu.")
         return {"kind": "surface", "format": "dxf", "points": int(len(pts)), "warnings": warnings,
                 "extent": {k: [float(pts[:, i].min()), float(pts[:, i].max())] for i, k in enumerate("xyz")}}
-    df = pd.read_csv(path, nrows=5)
+    df = pd.read_csv(path, nrows=5, comment="#")
     cols = list(df.columns)
     guess = {k: _match(cols, _GUESS[k]) for k in "xyz"}
     return {"kind": "surface", "format": "csv", "columns": cols, "guess": guess}
 
 
 def inspect_file(path: Path) -> dict:
+    assert_safe_data_path(path)
     suffix = path.suffix.lower()
     if suffix == ".dxf":
         return inspect_surface(path)
@@ -160,9 +216,10 @@ def reblock_file(folder: Path, spec: dict) -> dict:
     from ..core.reblock import ReblockSpec, reblock, write_outputs
 
     source = folder / safe_name(spec["file"])
+    assert_safe_data_path(source, folder)
     if source.suffix.lower() != ".csv":
         raise ValueError("reblock hanya untuk model blok CSV")
-    header = list(pd.read_csv(source, nrows=0).columns)
+    header = list(pd.read_csv(source, nrows=0, comment="#").columns)
 
     def column(key: str, required: bool = True) -> str | None:
         name = spec.get(key) or None
@@ -252,6 +309,8 @@ def build_project(spec: dict) -> tuple[str, dict]:
     for k in ("include_classes", "ore_domains"):
         if bm.get(k):
             block[k] = list(bm[k])
+    if bm.get("unestimated_action"):
+        block["unestimated_action"] = str(bm["unestimated_action"]).strip()
 
     prods = []
     for p in products:
@@ -266,7 +325,8 @@ def build_project(spec: dict) -> tuple[str, dict]:
 
     economics = {"grade_basis": eco.get("grade_basis", "mass_percent")}
     for k in ("mining_recovery", "dilution", "royalty_rate", "mining_cost_per_tonne", "mining_cost_per_volume",
-              "processing_cost_per_tonne", "rehabilitation_cost_per_tonne"):
+              "mining_cost_increment_per_m", "reference_elevation_m", "processing_cost_per_tonne",
+              "processing_cost_per_volume", "rehabilitation_cost_per_tonne", "rehabilitation_cost_per_volume"):
         if eco.get(k) not in (None, ""):
             economics[k] = float(eco[k])
     economics["products"] = prods

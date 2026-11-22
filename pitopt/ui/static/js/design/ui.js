@@ -90,6 +90,22 @@ export function say(f) {
     return `${name} desain ${v > 0 ? "+" : ""}${fmt(v, 1)} % terhadap shell (peringatan > ${fmt(f.status === "BLOKIR" ? 5 : l, 0)} %, blokir > ${fmt(f.status === "BLOKIR" ? l : 10, 0)} %).`;
   }
   if (f.check === "min_width") return `Dasar pit selebar ${fmt(v, 0)} m; lebar kerja minimum ${fmt(l, 0)} m.`;
+  if (f.check === "ramp") {
+    if (f.message === "no ramp requested") return "Tidak ada ramp yang diminta.";
+    const mBroken = f.message?.match(/^the ramp is broken: (.+)$/);
+    if (mBroken) return `Ramp putus: ${mBroken[1]}`;
+    const mCont = f.message?.match(/^one continuous road from the floor to the crest, ([\d,]+) m at ([\d.]+)%$/);
+    if (mCont) return `Satu jalan menerus dari dasar ke puncak, ${fmt(Number(mCont[1].replace(/,/g, "")), 0)} m dengan grade ${fmt(Number(mCont[2]), 1)}%.`;
+    if (v != null && l != null) return `Lebar jalan ${fmt(v, 1)} m lebih sempit dari kebutuhan armada ${fmt(l, 1)} m.`;
+  }
+  if (f.check === "self_intersection") {
+    if (f.message === "the wall overhangs: a bench sits outside the one above it") return "Dinding menggantung: sebuah bench keluar melewati bench di atasnya.";
+    if (f.message === "the road strip is not a valid polygon") return "Pita ramp bukan poligon yang valid.";
+    const mInv = f.message?.match(/^outline is not a valid polygon: (.+)$/);
+    if (mInv) return `Kontur bukan poligon valid: ${mInv[1]}`;
+    const mOk = f.message?.match(/^(\d+) benches: every outline is valid and no wall overhangs$/);
+    if (mOk) return `${mOk[1]} bench: seluruh kontur valid dan dinding tidak menggantung.`;
+  }
   return f.message;
 }
 
@@ -100,14 +116,14 @@ export function findingsBanner(doc, { limit = 6, links = true } = {}) {
   const hard = problems.some((f) => f.status === "BLOKIR");
   const rows = problems.slice(0, limit).map((f) => {
     const [to, text] = LINK[f.check] || ["d-validasi", "Buka Validasi →"];
-    return `<div class="brow">${pill(f.status)}<span class="tagc info">${NAME[f.check] || f.check}</span><span class="txt">${f.scope ? `<b>${esc(f.scope)}</b> — ` : ""}${esc(t(say(f)))}</span>${links ? `<a data-go="${to}">${text}</a>` : ""}</div>`;
+    return `<div class="brow">${pill(f.status)}<span class="tagc info">${NAME[f.check] || f.check}</span><span class="txt">${f.scope ? `<b>${esc(f.scope)}</b> — ` : ""}<span>${esc(say(f))}</span></span>${links ? `<a data-go="${to}">${text}</a>` : ""}</div>`;
   }).join("");
   return `<div class="banners ${hard ? "bad" : ""}"><div class="bh"><span style="font-size:18px">⚠</span><b>${problems.length} hal perlu perhatian</b><span class="muted small">— bukan error yang memblokir; ubah parameter lalu regenerasi</span></div>${rows}${problems.length > limit ? `<div class="brow muted small">+ ${problems.length - limit} lagi di layar Validasi.</div>` : ""}</div>`;
 }
 export const statusOf = (doc) => (doc ? worst(doc.findings.map((f) => f.status)) : "OK");
 
 export const legend = (classes, mode) => {
-  if (mode !== "kelas" || !classes.configured) return `<div class="xs muted">Warna: ${mode === "nilai" ? "nilai blok (USD)" : `kadar ${esc(classes.grade_col || "")}`}, skala kontinu.${!classes.configured ? " Ambang kelas belum diatur di <span class=\"num\">design.detail.grade_classes</span>." : ""}</div>`;
+  if (mode !== "kelas" || !classes.configured) return `<div class="xs muted"><span>Warna: ${mode === "nilai" ? "nilai blok (USD)" : `kadar ${esc(classes.grade_col || "")}`}, skala kontinu.</span>${!classes.configured ? ` <span>Ambang kelas belum diatur di</span> <span class="num">design.detail.grade_classes</span>.` : ""}</div>`;
   const b = classes.breaks;
   return classes.names.map((n, i) => {
     const rng = i === 0 ? `< ${fmt(b[0], 2)}` : i === b.length ? `≥ ${fmt(b[i - 1], 2)}` : `${fmt(b[i - 1], 2)}–${fmt(b[i], 2)}`;
@@ -122,9 +138,9 @@ export function planControls({ modes = true } = {}) {
   const levels = p.levels, idx = Math.max(0, levels.indexOf(p.rl));
   const layer = (k, l) => `<label class="chk"><input type="checkbox" data-act="dLayer" data-k="${k}" ${D.layers[k] ? "checked" : ""}> ${l}</label>`;
   return `<div class="ctl">${layer("blocks", "Block model")}${layer("shell", "Shell")}${layer("ramp", "Ramp")}${layer("sector", "Sektor")}
-    ${modes ? `<span class="row" style="gap:6px"><span class="xs muted">Warna menurut</span><span class="tabs">${[["kelas", "Kelas"], ["kadar", "Kadar"], ["nilai", "Nilai"]].map(([k, l]) => `<button data-act="dColor" data-k="${k}" class="${D.color === k ? "on" : ""}">${l}</button>`).join("")}</span></span>` : ""}
-    <span class="slice"><span class="xs muted">Slice</span><button class="btn sm" data-act="dSlice" data-d="1">▼</button>
-      <input type="range" min="0" max="${levels.length - 1}" value="${levels.length - 1 - idx}" data-input="dSliceRange" style="flex:1"><button class="btn sm" data-act="dSlice" data-d="-1">▲</button>
+    ${modes ? `<span class="row" style="gap:6px"><span class="xs muted">Warna menurut</span><span class="tabs" role="tablist">${[["kelas", "Kelas"], ["kadar", "Kadar"], ["nilai", "Nilai"]].map(([k, l]) => `<button role="tab" aria-selected="${D.color === k}" data-act="dColor" data-k="${k}" class="${D.color === k ? "on" : ""}">${l}</button>`).join("")}</span></span>` : ""}
+    <span class="slice"><span class="xs muted">Slice</span><button class="btn sm" data-act="dSlice" data-d="1" aria-label="Turun">▼</button>
+      <input type="range" min="0" max="${levels.length - 1}" value="${levels.length - 1 - idx}" data-input="dSliceRange" aria-label="Slice" style="flex:1"><button class="btn sm" data-act="dSlice" data-d="-1" aria-label="Naik">▲</button>
       <b class="num" style="min-width:76px;white-space:nowrap">RL ${fmt(p.rl, 1)}</b></span></div>`;
 }
 A.dLayer = (el) => { D.layers[el.dataset.k] = el.checked; _n(); };
@@ -142,7 +158,7 @@ A.dSaveAs = () => {
 };
 A.dSaveConfirm = async () => {
   const name = document.getElementById("dsaveas").value.trim();
-  if (!name) { document.getElementById("dsaveerr").textContent = "Nama skenario wajib diisi."; return; }
+  if (!name) { document.getElementById("dsaveerr").textContent = t("Nama skenario wajib diisi."); return; }
   const overrides = Object.fromEntries(Object.entries(D.draft).map(([k, v]) => [`design.detail.${k}`, v]));
   try {
     const { scenario } = await api("/api/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: S.project, scenario: S.scenario, overrides, save_as: name }) });

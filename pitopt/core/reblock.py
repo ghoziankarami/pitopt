@@ -62,7 +62,7 @@ def _chunks(path: str, chunksize: int = 400_000):
         from ..io.datfile import read_dat
 
         return read_dat(path, chunksize=chunksize)
-    return pd.read_csv(path, chunksize=chunksize)
+    return pd.read_csv(path, chunksize=chunksize, comment="#")
 
 
 def _sizes(chunk: pd.DataFrame, spec: ReblockSpec) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -172,6 +172,10 @@ def reblock(spec: ReblockSpec) -> tuple[pd.DataFrame, dict]:
         "grade_weighting": weight_name,
         "source_volume_by_category": by_category,
     }
+    if not spec.source.lower().endswith(".dat"):
+        from ..io.blockmodel import parse_csv_comment_metadata
+
+        summary.update(parse_csv_comment_metadata(spec.source))
     return out, summary
 
 

@@ -27,7 +27,7 @@ from .core.limits import check_solver_memory
 from .core.pitsurface import check_pit_closure, pit_depth_stats, pit_surface_grid
 from .core.planning import pit_by_pit_npv, pushback_labels, select_final_pit, select_pushbacks
 from .core.precedence import add_grid_indices, auto_bench_levels, build_precedence, cone_offsets
-from .core.schedule import group_strips, schedule_production, schedule_summary, specified_sequence, strip_sequence
+from .core.schedule import group_strips, schedule_design, schedule_production, schedule_summary, specified_sequence, strip_sequence
 from .core.sensitivity import breakeven_price_factor, price_sensitivity
 from .core.shells import run_nested_shells
 from .io import dxf
@@ -589,6 +589,30 @@ def run(cfg: ProjectConfig, verbose: bool = True, log_fn: Callable[[str], None] 
         fraction, design_summary = reconcile(solved, in_pit, final_face, grid)
         solved["design_fraction"] = fraction.round(4)
         solved["in_design"] = fraction >= 0.5
+        if sched.enabled and schedule is not None and solved["in_design"].any():
+            design_sched = schedule_design(
+                solved,
+                solved["in_design"].to_numpy(dtype=bool),
+                capacity,
+                sched.total_capacity,
+                rate,
+                sched.max_periods,
+                capacity_basis=sched.basis,
+            )
+            ds_sum = schedule_summary(design_sched)
+            shell_sum = schedule_summary(schedule)
+            design_summary["schedule_reconciliation"] = {
+                "periods": ds_sum["periods"],
+                "ore_tonnes": ds_sum["ore_tonnes"],
+                "waste_tonnes": ds_sum["waste_tonnes"],
+                "rock_tonnes": float(design_sched["rock_tonnes"].sum()),
+                "volume": ds_sum["volume"],
+                "total_cash_flow": ds_sum["total_cash_flow"],
+                "npv": ds_sum["npv"],
+                "shell_npv": shell_sum["npv"],
+                "npv_diff": ds_sum["npv"] - shell_sum["npv"],
+                "npv_change": (ds_sum["npv"] - shell_sum["npv"]) / shell_sum["npv"] if shell_sum["npv"] else float("nan"),
+            }
         log(
             f"Pit design: benches {geometry.bench_height:g} m high, face {geometry.face_angle_deg:g} deg, "
             f"berm {geometry.berm_width:.2f} m -> overall {geometry.overall_angle_deg:.1f} deg; design vs shell: "

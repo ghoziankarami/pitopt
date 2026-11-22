@@ -4,6 +4,7 @@ import { fmt, esc, api, toast, getPath, clone } from "../util.js";
 import { pageHead } from "./common.js";
 import { startRun } from "../run.js";
 import { modal, closeModal } from "../modal.js";
+import { t } from "../i18n.js";
 
 const ui = { derived: null, deriveFor: "" };
 const arr = (s) => String(s).split(/[,\s;]+/).filter(Boolean).map(Number);
@@ -164,7 +165,7 @@ function askSave(dup) {
 }
 A.doSave = async (el) => {
   const name = document.getElementById("sname").value.trim();
-  if (!name) return (document.getElementById("serr").textContent = "Nama wajib diisi.");
+  if (!name) return (document.getElementById("serr").textContent = t("Nama wajib diisi."));
   try {
     const r = await api("/api/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: S.project, scenario: S.scenario, overrides: el.dataset.dup ? {} : S.draft, save_as: name }) });
     closeModal();

@@ -36,7 +36,7 @@ export function render() {
     ["Excel", "DXF", "PDF", "HTML 3D"].map((x) => `<button class="btn" data-act="exportKind" data-kind="${x}">${x}</button>`).join(""))}
   ${banners(r)}
   <div class="grid g4">${cards.join("")}</div>
-  <div class="grid g2" style="margin-top:16px;grid-template-columns:1.55fr 1fr">
+  <div class="grid g2 g-summary" style="margin-top:16px">
     <div class="card"><div class="cardhead"><h2>Pit by pit</h2><span class="lbl">nilai &amp; NPV tiap shell RAF</span><a class="to" data-go="pit-by-pit">Buka layar penuh →</a></div>
       <p class="howto"><b>Cara baca:</b> batang = tonase shell, garis = NPV setelah tiap shell dijadwalkan dan didiskonto. Pit final dipilih dari NPV terdiskonto, ${r.final_pit.peak_undiscounted ? `bukan dari puncak nilai tak terdiskonto (RF ${fmt(r.final_pit.peak_undiscounted.rf, 2)}).` : "bukan dari nilai tak terdiskonto."}</p>
       <div class="chart">${pitByPit(r.pit_by_pit, { w: 760, h: 340, compact: true })}</div>${pitLegend()}</div>

@@ -144,3 +144,64 @@ def test_demo_allows_sample_design_parameter_changes_in_memory(interactive_demo)
 def test_json_body_limits(demo):
     assert post(demo, "[]")[0] == 400
     assert post(demo, "{}", {"Content-Length": str(256 * 1024 + 1)})[0] == 400
+
+
+def test_public_release_guard_scripts_present():
+    repo = Path(__file__).resolve().parents[1]
+    assert (repo / "scripts/check_installed_package.py").is_file()
+    assert (repo / ".github/scripts/check_repository_hygiene.py").is_file()
+
+
+
+def test_public_root_serves_landing_and_demo_serves_workspace(demo):
+    conn = http.client.HTTPConnection("127.0.0.1", demo, timeout=10)
+    conn.request("GET", "/")
+    landing = conn.getresponse().read().decode()
+    conn.request("GET", "/demo")
+    workspace = conn.getresponse().read().decode()
+    conn.close()
+    assert 'href="/demo"' in landing and "PitOpt" in landing
+    assert "<script src=" not in landing and "<link rel=\"stylesheet\" href=\"http" not in landing
+    assert "/static/js/app.js" in workspace
+
+
+def test_export_public_release_excludes_internal_agent_files(tmp_path):
+    import importlib.util
+    repo = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("export_public_release", repo / "scripts/export_public_release.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    for internal in ("AGENTS.md", "CLAUDE.md", "STANDARDS.md", "ops/scripts/agents/wp.py",
+                     "docs/PLAN-pitopt.md", "docs/archive/TASKS-done.md", "docs/handover/HANDOVER-pitopt.md"):
+        assert mod.is_excluded(internal), internal
+    assert not mod.is_excluded("README.md") and not mod.is_excluded("docs/INSTALLATION.md")
+    assert not mod.is_excluded("pitopt/ui/static/landing.html")
+
+
+def test_project_listing_ignores_macos_appledouble_files(tmp_path):
+    """A stray `._project.yaml` (tar from macOS) must not break /api/projects."""
+    src = Path(__file__).resolve().parents[1] / "projects" / "example_tin"
+    dest = tmp_path / "projects" / "example_tin"
+    shutil.copytree(src, dest)
+    (dest / "._project.yaml").write_bytes(b"\x00\x05\x16\x07" + b"\xa3" * 60)
+    projects = App(tmp_path, demo_mode=True).list_projects()
+    assert [p["id"] for p in projects] == ["example_tin"]
+
+
+def test_grids3d_endpoint_is_whole_metres_and_results_omit_grids(tmp_path):
+    shutil.copytree(Path(__file__).resolve().parents[1] / "projects", tmp_path / "projects")
+    shutil.copytree(Path(__file__).resolve().parents[1] / "outputs", tmp_path / "outputs")
+    app = App(tmp_path, demo_mode=True)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        def get(path):
+            c = http.client.HTTPConnection("127.0.0.1", httpd.server_port); c.request("GET", path)
+            return json.loads(c.getresponse().read())
+        q = "project=example_tin&scenario=project"
+        results = get(f"/api/results?{q}")
+        assert "grids3d" not in results and results["has_grids3d"] is True
+        g = get(f"/api/grids3d?{q}")
+        assert all(v is None or isinstance(v, int) for row in g["topo"] for v in row)
+    finally:
+        httpd.shutdown()

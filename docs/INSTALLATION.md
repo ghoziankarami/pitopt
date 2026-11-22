@@ -1,46 +1,58 @@
 # Install PitOpt
 
-To explore the synthetic examples, use the [live demo](https://pitopt.orebit.id). It uses synthetic data and is read-only. To run PitOpt on your own computer, use the quick-start steps below; setup installs everything automatically the first time you launch it.
+Try the [live workspace](https://pitopt.orebit.id/demo) first: it uses a synthetic case study and is read-only. To run PitOpt on your own computer with your own block models, follow the steps for your platform. Setup installs everything the first time you launch it.
 
-Requirements: **Python 3.10 or newer** (check with `python3 --version`) and, except for the ZIP route, **Git**. If your Python is older than 3.10, install a supported version from [python.org](https://www.python.org/downloads/) or with `brew install python`.
+**Requirements**
 
-## macOS: download and click
+- **Python 3.10 or newer** — check with `python3 --version` (Windows: `py -3 --version`). The Python that ships with macOS is too old; install a current one from [python.org](https://www.python.org/downloads/) or with `brew install python`.
+- **Git** — or use the ZIP download described below.
 
-1. [Download the latest ZIP](https://github.com/ghoziankarami/pitopt/archive/refs/heads/main.zip) and extract it.
-2. Open the extracted `pitopt-main` folder and double-click **PitOpt.command**.
-3. Wait a few minutes for the first-time setup (it also runs the synthetic tin example). PitOpt opens in your browser at [http://127.0.0.1:8765](http://127.0.0.1:8765).
+## Windows (native)
 
-If macOS blocks the launcher, Control-click `PitOpt.command`, choose **Open**, and confirm. Keep its Terminal window open while using PitOpt; press **Ctrl+C** to stop it.
+1. Install Python 3.10+ from [python.org](https://www.python.org/downloads/). Tick **Add python.exe to PATH** during setup.
+2. Install [Git for Windows](https://git-scm.com/download/win), or download the ZIP.
+3. Open PowerShell or Command Prompt in the folder where you want PitOpt and run:
 
-## macOS or Linux: terminal setup
+   ```bat
+   git clone https://github.com/ghoziankarami/pitopt.git && cd pitopt && PitOpt.bat
+   ```
 
-Install Python 3.10 or newer and Git, then run these commands in Terminal:
+   Or double-click `PitOpt.bat` in the extracted `pitopt` folder.
 
-```bash
-git clone https://github.com/ghoziankarami/pitopt.git
-cd pitopt
-bash scripts/start_ui.sh
-```
+`PitOpt.bat` creates a local `.venv`, installs PitOpt, runs the bundled examples, and opens <http://127.0.0.1:8765>. Keep the window open while you work; press **Ctrl+C** to stop. Check the launcher without starting the app: `PitOpt.bat --check-only`.
 
-The launcher creates a local `.venv`, installs PitOpt, and opens the browser. Keep the terminal open while using the app; press **Ctrl+C** to stop it.
+## macOS
 
-## Windows: WSL setup
+1. [Download the ZIP](https://github.com/ghoziankarami/pitopt/archive/refs/heads/main.zip) and extract it, or clone the repository.
+2. In Terminal, from the `pitopt` folder, run:
 
-PitOpt runs on Windows through WSL 2 with Ubuntu 24.04. Install it using [Microsoft's WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install), then open the Ubuntu app and paste:
+   ```bash
+   bash PitOpt.command
+   ```
 
-```bash
-sudo apt update
-sudo apt install -y git python3-venv
-git clone https://github.com/ghoziankarami/pitopt.git
-cd pitopt
-bash scripts/start_ui.sh
-```
+   Or double-click **PitOpt.command** in Finder.
 
-Open [http://127.0.0.1:8765](http://127.0.0.1:8765) in your browser. Keep the Ubuntu terminal open while using PitOpt; press **Ctrl+C** to stop it. Native Windows is not supported.
+If macOS blocks the launcher, Control-click `PitOpt.command`, choose **Open**, and confirm. Keep the Terminal window open while using PitOpt; press **Ctrl+C** to stop.
+
+## Linux
+
+1. Install Python 3.10+, Git, and the `venv` package (on Debian/Ubuntu: `sudo apt install -y git python3-venv`).
+2. From the folder where you want PitOpt, run:
+
+   ```bash
+   git clone https://github.com/ghoziankarami/pitopt.git && cd pitopt && bash scripts/start_ui.sh
+   ```
+
+The browser opens at <http://127.0.0.1:8765>. Press **Ctrl+C** to stop. Use `bash scripts/start_ui.sh --check-only` to verify the setup without starting the app.
 
 ## Start it again later
 
-Open a terminal in the `pitopt` folder and run `bash PitOpt.command` (macOS/Linux) or `bash scripts/start_ui.sh` (WSL). Setup is skipped once it has completed.
+Open a terminal in the `pitopt` folder and run the launcher for your platform (`PitOpt.bat`, `bash PitOpt.command`, or `bash scripts/start_ui.sh`). Setup is skipped once it has completed.
+
+## Choose another port
+
+- Windows: `set PITOPT_PORT=8770` before `PitOpt.bat`
+- macOS / Linux: `PITOPT_PORT=8770 bash PitOpt.command` or `bash scripts/start_ui.sh 8770`
 
 ## Troubleshooting
 
@@ -48,73 +60,34 @@ Open a terminal in the `pitopt` folder and run `bash PitOpt.command` (macOS/Linu
 |---|---|
 | `PitOpt needs Python 3.10 or newer` | Install a newer Python (see Requirements) and run the launcher again. |
 | macOS: "cannot be opened because it is from an unidentified developer" | Control-click `PitOpt.command`, choose **Open**, confirm. |
-| `Address already in use` | PitOpt is already running, or another app uses port 8765. Start on another port: `bash scripts/start_ui.sh 8770`. |
-| The install was interrupted or packages are broken | Delete the `.venv` folder and launch again; setup reruns. |
-| `Model too large for this machine` | The model is too large for this machine; see "Model size" in [TECHNICAL.md](TECHNICAL.md#model-size). |
+| Windows: `python` opens the Microsoft Store | Install Python from python.org and tick **Add python.exe to PATH**, or use the `py` launcher. |
+| `Address already in use` | Another instance is running, or another app uses port 8765. Choose another port (above). |
+| Install was interrupted or packages are broken | Delete the `.venv` folder and launch again; setup reruns. |
+| `Model too large for this machine` | The model exceeds this machine's memory budget; see "Model size" in [TECHNICAL.md](TECHNICAL.md#model-size). |
 
-Still stuck? [Open an issue](https://github.com/ghoziankarami/pitopt/issues/new/choose) with the terminal output.
+Still stuck? [Open an issue](https://github.com/ghoziankarami/pitopt/issues/new/choose) and include the launcher output.
 
 ## Run an example from the command line
 
-After installing through one of the steps above, open a terminal in the `pitopt` folder and activate the environment:
+With the environment activated (`source .venv/bin/activate`, or `.venv\Scripts\activate` on Windows):
 
 ```bash
-source .venv/bin/activate
 python -m pitopt validate --config projects/example_tin/project.yaml
 python -m pitopt run --config projects/example_tin/project.yaml
 ```
 
-Generated reports and surfaces are written to `outputs/`. To start the web app from an activated environment, run `python -m pitopt ui --root . --port 8765`.
-
-## Build and install a wheel
-
-The source launcher above is the easiest route because it includes example
-projects. Maintainers can also build a standard Python wheel and source archive:
-
-```bash
-python3 -m venv .venv-build
-source .venv-build/bin/activate
-python -m pip install "build>=1.2,<2"
-python -m build
-python3 -m venv .venv-wheel
-.venv-wheel/bin/python -m pip install dist/*.whl
-.venv-wheel/bin/python -I -m pitopt --help
-```
-
-The wheel includes the local UI, fonts and translations. It does not install
-your project data into site-packages: keep a working folder containing
-`projects/`, for example this source checkout. Run from that working folder:
-
-```bash
-/path/to/.venv-wheel/bin/python -m pitopt ui --root . --port 8765 --no-browser
-```
-
-Use absolute paths if your terminal is elsewhere. The wheel route uses the
-same macOS/Linux/WSL support policy as the source launcher. Dependency
-installation needs internet. Do not assume an unrelated package on PyPI is
-this project; install the wheel you built or an artifact from this repository.
-
-CI builds both archives and verifies a fresh wheel installation outside the
-checkout. It checks CLI input validation, every UI asset, Plotly and the local
-server's Host restriction, and records checksums, the source SHA and the tested
-Python dependencies. Downloadable CI artifacts require GitHub access and are
-separate from published release assets. Existing tags may not have these files.
+Reports and surfaces are written to `outputs/`. To start the web app from an activated environment: `python -m pitopt ui --root . --port 8765`.
 
 ## Optional development tools
 
 ```bash
-python -m pip install -e ".[dev]"  # tests, lint, and packaging tools
-python -m pip install -e ".[mcp]"  # optional MCP integration
+python -m pip install -e ".[dev]"   # tests, lint, packaging tools
+python -m pip install -e ".[mcp]"   # optional MCP integration for AI assistants
 ```
 
-See [project requirements](PRD.md) for input formats and [security guidance](../SECURITY.md) before exposing a local instance to a network. The included tin and porphyry projects contain synthetic data.
+Before exposing a local instance to a network, read [SECURITY.md](../SECURITY.md). The bundled `example_tin` and `porphyry_synthetic` projects contain synthetic data only.
 
-## Verified dependency profile and interrupted installation
-
-The source launcher checks the installed editable package and runtime imports
-in isolated Python mode. It repairs an interrupted `.venv` in place and keeps
-existing files; it no longer deletes the environment to retry installation.
-The bundled example is rerun when its input/parameter/engine fingerprint differs.
+## Reproducible dependency profile
 
 For the dependency versions tested on Linux with Python 3.12:
 
@@ -122,7 +95,4 @@ For the dependency versions tested on Linux with Python 3.12:
 PITOPT_CONSTRAINTS="$PWD/requirements-tested-py312.txt" NO_BROWSER=1 bash scripts/start_ui.sh
 ```
 
-The profile includes development/browser tooling. Other Python versions and
-native desktop platforms need their own acceptance checks; these pins are not
-claimed as a universal platform certification. A saved run without a fingerprint
-remains readable as unverified; rerun it before exporting or using derived design.
+Other Python versions and operating systems need their own acceptance checks; these pins are not a universal platform certification. A saved run without a fingerprint stays readable as unverified; rerun it before exporting or using derived designs.

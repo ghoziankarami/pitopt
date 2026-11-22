@@ -18,7 +18,7 @@
 .dd .kv{font-size:12.5px}
 .dd .banners.bad .bh{background:transparent}
 .dd .tagc.blokir{color:var(--bad-d);background:var(--bad-fill)}
-.dd .dim td{opacity:.6}
+.dd .dim td{color:var(--faint)}
 
 /* the compact rail: the drawing gets the room */
 nav.side.rail{width:56px;padding:14px 6px;align-items:center;overflow:hidden}
@@ -32,7 +32,7 @@ nav.side.rail .nav .no{width:auto;font-size:12px}
 @media (max-width:1280px){.dd .dd-cols3,.dd .dd-gen{grid-template-columns:1fr}.dd .dd-cols,.dd .dd-cols2,.dd .dd-sec,.dd .dd-map{grid-template-columns:1fr}}
 
 .dd .card{min-width:0}
-.dd .dd-two>*,.dd .dd-cols>*,.dd .dd-cols2>*,.dd .dd-cols3>*,.dd .dd-gen>*,.dd .dd-sec>*{min-width:0}
+.dd .dd-two>*,.dd .dd-cols>*,.dd .dd-cols2>*,.dd .dd-cols3>*,.dd .dd-gen>*,.dd .dd-sec>*,.dd .dd-map>*{min-width:0}
 .dd .inp{min-width:0}
 .dd .inp input{width:100%;min-width:0}
 .dd .fld select{width:100%}
@@ -43,3 +43,20 @@ nav.side.rail .nav .no{width:auto;font-size:12px}
 .dd table.t td.l b{white-space:normal}
 .dd .dd-two>.card+.card{margin-top:0}
 .dd pre.prov{background:var(--panel2);color:var(--text);max-height:none;white-space:pre-wrap;word-break:break-all;font-size:11.5px}
+.dd #sec1,.dd #sec2{max-width:100%;overflow-x:auto}
+@media (max-width:768px){
+  nav.side.rail{width:100%;max-width:100%;padding:6px 8px;flex-direction:row;align-items:center;overflow-x:auto}
+  nav.side.rail .subnav,nav.side.rail .grow,nav.side.rail .pill,nav.side.rail .num.xs{display:flex}
+  nav.side.rail .nav{width:auto;padding:8px;justify-content:flex-start}
+  nav.side.rail .nav .no{width:16px;font-size:11px}
+  .dd .dd-two,.dd .dd-map{grid-template-columns:minmax(0,1fr)}
+  .dd canvas.plan{height:320px !important}
+  .dd #d3d{height:380px !important}
+}
+@media (max-width:480px){
+  .dd .ctl .slice{min-width:0;width:100%;flex:1 1 100%;flex-wrap:wrap}
+  .dd .inset{position:static;margin-top:8px;border-radius:6px}
+  .dd .inset canvas{width:100% !important;height:auto !important;max-height:180px}
+  .dd canvas.plan{height:260px !important}
+  .dd #d3d{height:320px !important}
+}

@@ -4,7 +4,7 @@ import { api, qs, clone } from "./util.js";
 
 export const S = {
   projects: [], project: null, scenario: null,
-  demoMode: false, demoRepoUrl: "https://github.com/ghoziankarami/pitopt",
+  demoMode: false, demoRepoUrl: "https://github.com/ghoziankarami/pitopt", appVersion: "1.0.0",
   results: null, freshness: null, selectionVersion: 0, raw: null, cfg: null, error: null, loading: false,
   view: "ringkasan", draft: {}, ve: +localStorage.getItem("pitopt-ve") || 5, theme: localStorage.getItem("pitopt-theme") || "light",
   job: null, compare: {}, pendingFinal: null,
@@ -20,6 +20,7 @@ export async function loadProjects() {
   ]);
   S.demoMode = !!meta.demo;
   S.demoRepoUrl = meta.repo_url || S.demoRepoUrl;
+  S.appVersion = meta.version || S.appVersion;
   S.projects = projects;
   if (!S.project && S.projects.length) {
     const saved = localStorage.getItem("pitopt-scenario-v2");
@@ -85,4 +86,12 @@ export const scenarioMeta = () => {
 export const isChanged = () => Object.keys(S.draft).length > 0;
 export function setDraft(path, value, original) {
   if (JSON.stringify(value) === JSON.stringify(original)) delete S.draft[path]; else S.draft[path] = value;
+}
+
+// 3D grids are large, so /api/results omits them; fetch once per loaded result when a 3D view needs them.
+export async function ensureGrids3d() {
+  const r = S.results;
+  if (!r || r.grids3d || !r.has_grids3d) return r?.grids3d || null;
+  r.grids3d = await api(`/api/grids3d?${qs({ project: S.project, scenario: S.scenario })}`);
+  return r.grids3d;
 }

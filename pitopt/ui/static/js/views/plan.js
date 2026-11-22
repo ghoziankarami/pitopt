@@ -55,7 +55,7 @@ function designNote(rc) {
 function reconNote(r) {
   const t = r.schedule.tag_reconciliation;
   if (!t || t.max_relative_difference < 0.02) return "";
-  return `<div class="banner warn small" style="margin:8px 20px"><b>Cash flow per periode ≠ jumlah nilai blok berlabel periode</b> (selisih maks ${fmt(t.max_relative_difference * 100, 1)}% dari cash flow terbesar; total sama, selisih ${mUSD(t.total_difference)} jt). Penjadwal membagi tiap bench-run antar periode secara proporsional tonase agar hasil tidak bergantung urutan baris; kolom <span class="num">period</span> di CSV adalah penetapan blok utuh. Angka di tabel ini yang dipakai laporan.</div>`;
+  return `<div class="banner warn small" style="margin:8px 20px"><b>Cash flow per periode ≠ jumlah nilai blok berlabel periode</b> (selisih maks ${fmt(t.max_relative_difference * 100, 1)}% dari cash flow terbesar; total sama, selisih ${mUSD(t.total_difference)} jt). Periksa rekonsiliasi penjadwalan blok utuh terhadap kolom <span class="num">period</span> di CSV. Angka di tabel ini yang dipakai laporan.</div>`;
 }
 
 export function render(view) {
@@ -73,8 +73,8 @@ function planPage(r) {
     ? `<div class="card" style="border-color:var(--warn-line);background:var(--warn-panel);margin-top:16px"><div class="row"><span class="tagc asumsi">METODE SHELLS</span><b>${pb.candidates_total} kandidat diuji · ${pb.candidates_practical} praktis</b></div>
         <p class="small" style="margin:8px 0 0;line-height:1.5">${pb.candidates_practical === 0 ? `Pembagian berbasis shell menghasilkan tahapan yang lebih sempit dari lebar kerja minimum ${fmt(pb.min_width, 0)} m; pembagian yang paling tidak sempit dipakai.` : `Pembagian dengan NPV specified terbaik di antara yang memenuhi lebar kerja dan tonase minimum dipilih.`}</p></div>`
     : sc.length ? `<div class="card" style="border-color:var(--warn-line);background:var(--warn-panel);margin-top:16px"><div class="small"><span class="tagc info">METODE</span> &nbsp; Skenario lain di proyek ini punya hasil — bandingkan metode pushback yang berbeda di layar Bandingkan. <a data-go="bandingkan">Bandingkan skenario →</a></div></div>` : "";
-  const variantTabs = `<div class="tabs" role="tablist">${[["plan", "Rencana"], ["best", "Best case"], ["worst", "Worst case"]].map(([v, l]) => `<button data-act="planVariant" data-v="${v}" class="${state.variant === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
-  const modeTabs = `<div class="tabs">${[["pushback", "Per pushback"], ["period", "Per periode"], ["depth", "Kedalaman"]].map(([v, l]) => `<button data-act="planMode" data-v="${v}" class="${state.mode === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  const variantTabs = `<div class="tabs" role="tablist">${[["plan", "Rencana"], ["best", "Best case"], ["worst", "Worst case"]].map(([v, l]) => `<button role="tab" aria-selected="${state.variant === v}" data-act="planVariant" data-v="${v}" class="${state.variant === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  const modeTabs = `<div class="tabs" role="tablist">${[["pushback", "Per pushback"], ["period", "Per periode"], ["depth", "Kedalaman"]].map(([v, l]) => `<button role="tab" aria-selected="${state.mode === v}" data-act="planMode" data-v="${v}" class="${state.mode === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
   const total = state.mode === "period" ? plan.length : pb.rows.length;
   const labels = state.mode === "period" ? plan.map((p) => `P${p.period}`) : pb.rows.map((p) => `PB${p.pushback}${p.strips ? ` · ${p.strips[0]}–${p.strips[1]}` : ""}`);
   return `<div class="page">
