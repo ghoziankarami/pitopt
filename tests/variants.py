@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 Synthetic deposits that cover the kinds of data a real project brings, so the independent consistency checks

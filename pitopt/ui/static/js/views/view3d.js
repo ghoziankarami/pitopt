@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 import { S, notify, ensureGrids3d } from "../store.js";
 import { A } from "../actions.js";

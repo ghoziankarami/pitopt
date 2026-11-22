@@ -811,7 +811,7 @@
 "Pakai data Anda →": "Use your own data →",
 "Unggah model blok CSV dan topografi DXF Anda sendiri": "Upload your own CSV block model and DXF topography",
 "Jalankan optimasi pit penuh: shell RAF, pit by pit, pushback, jadwal, sensitivitas": "Run the full optimisation: RF shells, pit by pit, pushbacks, schedule, sensitivity",
-"Gratis dan open source (MIT) — data tidak pernah meninggalkan komputer Anda": "Free and open source (MIT) — your data never leaves your computer",
+"Gratis dan open source (AGPL) — data tidak pernah meninggalkan komputer Anda": "Free and open source (AGPL-3.0) — your data never leaves your computer",
 "Instalasi pertama beberapa menit; dataset studi kasus sudah dijalankan saat aplikasi terbuka. Panduan lengkap ada di panduan instalasi lokal.": "First install takes a few minutes; the case-study dataset is already run when the app opens. The full guide is in the local installation guide.",
 "Mulai cepat · macOS / Linux (Python {#}+)": "Quick start · macOS / Linux (Python {#}+)",
 "demo publik ini hanya baca untuk fitur ini — clone dan jalankan sendiri: https://github.com/ghoziankarami/pitopt": "This feature is read-only in the public demo — install PitOpt locally to use it.",

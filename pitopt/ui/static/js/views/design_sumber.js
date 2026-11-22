@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Sumber shell — where the design starts from: the PitOpt run, its shell, the starting parameters and the
 // block model, with a plan of the shell over the blocks.

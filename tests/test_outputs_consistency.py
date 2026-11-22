@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 The files a user hands on (Excel, PDF, DXF, CSV) must carry the same numbers as the run's

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """A delayed design fetch must not overwrite a newer project or parameter response."""
 import test_selection_state

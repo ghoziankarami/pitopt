@@ -2,11 +2,18 @@ PitOpt
 Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 https://github.com/ghoziankarami/pitopt
 
-PitOpt is licensed under the MIT License (see LICENSE). If you redistribute
-PitOpt or a work derived from it, in source or binary form, you must keep the
-copyright notice above, the LICENSE text, and this NOTICE with the copy.
+PitOpt is licensed under the GNU Affero General Public License v3.0 only
+(AGPL-3.0-only; see LICENSE). If you distribute PitOpt or a modified version, or
+let users interact with a modified version over a network, you must offer the
+complete corresponding source under the same licence and keep the copyright
+notice above, the LICENSE text and this NOTICE.
+
+Releases up to and including v0.4.0 were published under the MIT License and
+remain available under it. Source published after the relicensing commit
+(2026-11-22) is AGPL-3.0-only.
 
 The names "PitOpt" and "Orebit", and the PitOpt logo, are not licensed for use
 as the name of a modified or competing product. See TRADEMARKS.md.
 
-Third-party components keep their own licenses; see THIRD_PARTY_NOTICES.md.
+Third-party components keep their own licences; see THIRD_PARTY_NOTICES.md.
+Bundled benchmark data (MineLib, CC BY-SA 3.0) is separate data under its own licence.

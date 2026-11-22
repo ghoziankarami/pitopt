@@ -1,7 +1,7 @@
 # PitOpt
 
 [![CI](https://github.com/ghoziankarami/pitopt/actions/workflows/ci.yml/badge.svg)](https://github.com/ghoziankarami/pitopt/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Live demo](https://img.shields.io/badge/live%20demo-pitopt.orebit.id-C9A97A.svg)](https://pitopt.orebit.id)
 
@@ -121,7 +121,7 @@ If PitOpt is useful to you, a ⭐ on GitHub helps others find it.
 
 ## License and citation
 
-PitOpt is released under the [MIT License](LICENSE); copies and derivative works must keep the copyright notice, `LICENSE` and [NOTICE](NOTICE). The names "PitOpt" and "Orebit" and the logo are not licensed for forks or competing products; see [TRADEMARKS.md](TRADEMARKS.md). Bundled fonts (OFL-1.1) and
+PitOpt is released under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only): you may use, study, change and share it, and if you distribute a modified version or run one as a network service, you must offer its complete source under the same licence. Keep the copyright notice and [NOTICE](NOTICE) in every copy. Releases up to v0.4.0 were published under the MIT License and remain available under it. The names "PitOpt" and "Orebit" and the logo are not licensed for forks or competing products; see [TRADEMARKS.md](TRADEMARKS.md). Bundled fonts (OFL-1.1) and
 MineLib benchmark files (CC BY-SA 3.0) keep their own licenses; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). If you use PitOpt in research,
 please cite it using [CITATION.cff](CITATION.cff) (GitHub's "Cite this repository" button).

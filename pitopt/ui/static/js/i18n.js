@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Interface language defaults to English. The screens are written in Indonesian;
 // English is a dictionary applied to the HTML (and short strings) just before it reaches the DOM, so every

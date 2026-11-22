@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // The plan view: honest scale (one metre is the same number of pixels both ways), blocks at their real size,
 // outlines, the road and the sector lines. Blocks are drawn one path per colour, not one element per cell, so a

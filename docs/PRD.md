@@ -2,7 +2,7 @@
 
 **Status:** Canonical Product Scope & Vision
 **Target:** Production-Grade Open-Source Open-Pit Mine Optimizer, Scheduler & Practical Bench Designer
-**Lisensi:** MIT
+**Lisensi:** AGPL-3.0-only (rilis sampai v0.4.0: MIT)
 
 ---
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Crest & Sektor — the wall geometry per azimuth sector: bench face angle, berm criterion, the limits the
 // design is checked against. The crest itself follows the PitOpt shell (read-only); what is edited is the wall.

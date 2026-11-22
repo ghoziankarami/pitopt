@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 Cancelling a run and the promise behind it (PRD F-RUN-4): stop without

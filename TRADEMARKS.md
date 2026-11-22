@@ -1,11 +1,11 @@
 # Name and attribution policy
 
-The MIT License covers PitOpt's code. It does not cover the names and marks below.
+The AGPL-3.0 licence covers PitOpt's code. It does not cover the names and marks below.
 
 **Names and logo.** "PitOpt", "Orebit" and the PitOpt logo identify this project and its maintainer. Do not use them as the name of a fork, a hosted service or a commercial product, and do not suggest that a modified version is endorsed by or comes from this project.
 
 **Forks and derivative works are welcome.** You may:
-- fork and modify PitOpt under the MIT License;
+- fork and modify PitOpt under the AGPL-3.0 licence;
 - say "based on PitOpt" or "fork of PitOpt" with a link to https://github.com/ghoziankarami/pitopt;
 - use the name PitOpt to describe compatibility truthfully.
 

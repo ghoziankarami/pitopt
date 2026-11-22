@@ -1,6 +1,6 @@
 # Third-party notices
 
-The MIT license covers PitOpt original code and public documentation. It does
+The AGPL-3.0 licence covers PitOpt original code and public documentation. It does
 not replace the licenses of dependencies, fonts or benchmark data.
 
 ## Bundled assets

@@ -41,7 +41,7 @@ pytest
 Contribute synthetic fixtures only. Do not submit customer data, credentials,
 private screenshots, recordings or copied code without a compatible license.
 Include provenance and license notices for third-party assets. Contributions
-are accepted under the project's [MIT License](LICENSE).
+are accepted under the project's [AGPL-3.0 licence](LICENSE). Sign off every commit (`git commit -s`) to certify the [Developer Certificate of Origin](https://developercertificate.org/); the maintainer may also offer the code under other licences.
 
 Do not expose a normal local UI server to the Internet. Public showcases must
 use demo mode, a separate synthetic-only root and a reverse proxy with limits

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // The oblique 3D view of the design (Plotly): benches drawn as they arrive, the road, the shell, the sector lines.
 // The vertical exaggeration is applied to the scene's aspect ratio and always shown, so the exaggerated wall is

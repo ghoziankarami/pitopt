@@ -6,6 +6,9 @@ Notable changes to PitOpt. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Licence: source published from 2026-11-22 is AGPL-3.0-only (releases up to v0.4.0 stay MIT). Added NOTICE, TRADEMARKS.md, SPDX headers and a Developer Certificate of Origin sign-off for contributions.
+
 ### Added
 - Input/result provenance, explicit shell-versus-bench readiness warnings, tested Python 3.12 dependencies and reproducible acceptance handover.
 - Public demo: every action that needs a local install opens a "Use your own

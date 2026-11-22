@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """Release regressions: closure edge cases, margins, and bounded demo requests."""
 import http.client

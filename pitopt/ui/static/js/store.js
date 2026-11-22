@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Application state: the projects, the selected scenario, its results and
 // the parameter edits not yet run. Views read S and call the actions.

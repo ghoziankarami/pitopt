@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // New project & 1-screen Quick Pit Estimation: sample/CSV → instant pre-validation & RAM → run → KPI & 3D.
 import { S, notify, loadProjects2, select, ensureGrids3d } from "../store.js";
@@ -231,7 +231,7 @@ export function render() {
   if (S.demoMode) return `<div class="page">${pageHead(t("Gunakan data Anda sendiri"), t("Jalankan PitOpt secara lokal untuk mengolah model blok Anda."), "")}
     <div class="card demo-own-data"><span class="tagc info">${t("WEB WORKSPACE")}</span><h2>${t("Gunakan model blok Anda sendiri")}</h2>
       <p>${t("Workspace web ini memakai dataset studi kasus yang sudah dihitung. Unggah data dan optimasi pit baru dijalankan di aplikasi desktop lokal, sehingga block model dan DXF Anda tetap di komputer Anda. Hasil desain wajib ditinjau Competent Person sesuai standar industri.")}</p>
-      <ul class="demo-gets"><li>${t("Unggah model blok CSV dan topografi DXF Anda sendiri")}</li><li>${t("Jalankan optimasi pit penuh: shell RAF, pit by pit, pushback, jadwal, sensitivitas")}</li><li>${t("Ekspor Excel, PDF, DXF dan viewer 3D")}</li><li>${t("Gratis dan open source (MIT) — data tidak pernah meninggalkan komputer Anda")}</li></ul>
+      <ul class="demo-gets"><li>${t("Unggah model blok CSV dan topografi DXF Anda sendiri")}</li><li>${t("Jalankan optimasi pit penuh: shell RAF, pit by pit, pushback, jadwal, sensitivitas")}</li><li>${t("Ekspor Excel, PDF, DXF dan viewer 3D")}</li><li>${t("Gratis dan open source (AGPL) — data tidak pernah meninggalkan komputer Anda")}</li></ul>
       <div class="demo-actions"><a class="btn primary" href="${esc(S.demoRepoUrl)}/blob/main/docs/INSTALLATION.md" target="_blank" rel="noopener noreferrer">${t("Panduan instalasi lokal →")}</a><a class="btn" href="${esc(S.demoRepoUrl)}" target="_blank" rel="noopener noreferrer">★ ${t("Star di GitHub")}</a></div>
       <div class="note demo-install"><b>${t("Mulai cepat · Windows, macOS, Linux (Python 3.10+)")}</b><pre class="demo-install-code">git clone ${esc(S.demoRepoUrl)}.git\ncd pitopt\nPitOpt.bat            # Windows\nbash PitOpt.command   # macOS\nbash scripts/start_ui.sh  # Linux</pre><span class="small">${t("Instalasi pertama beberapa menit; dataset studi kasus sudah dijalankan saat aplikasi terbuka. Panduan lengkap ada di panduan instalasi lokal.")}</span></div>
     </div>

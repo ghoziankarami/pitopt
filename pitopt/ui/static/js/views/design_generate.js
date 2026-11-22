@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Generate & Tinjau — compute the design, watch it arrive bench by bench in 3D, cancel it, read the result.
 import { A } from "../actions.js";

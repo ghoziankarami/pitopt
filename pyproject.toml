@@ -7,7 +7,7 @@ name = "pitopt"
 version = "1.0.0"
 description = "Open-pit ultimate pit optimisation (maximum closure) with nested RAF shells, pushbacks, scheduling, sensitivity and DXF/CSV/Excel/PDF output"
 requires-python = ">=3.10"
-license = "MIT"
+license = "AGPL-3.0-only"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"]
 readme = "README.md"
 dependencies = [

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Formatting, colours and tiny helpers shared by every screen.
 import { locale, lang, t as tt } from "./i18n.js";

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Pieces every design screen uses: the page frame, the states that come before there is anything to show
 // (loading, no run yet, an error), parameter fields with their provenance, and the validation banner.

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Project management: rename project / scenario, delete scenario / project (with a look at what goes first).
 import { S, notify, loadProjects2, select, scenarioMeta } from "./store.js";

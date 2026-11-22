@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Starting a run: name the scenario when parameters changed, POST it, and
 // hand over to the Jalankan screen which streams the log.

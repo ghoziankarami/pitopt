@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Validasi & Rekonsiliasi — every criterion recomputed from the generated geometry, the design against the
 // shell in three tiers, dilution traced to its cause, and the block-by-block map of one bench.

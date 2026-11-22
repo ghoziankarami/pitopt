@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Penampang — a section along a line drawn on the plan, at 1:1 and at an exaggerated scale side by side.
 import { esc, fmt } from "../util.js";

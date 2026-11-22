@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """Contract tests for pitopt.mcp_server and PitOptCommands without external MCP clients."""
 from __future__ import annotations

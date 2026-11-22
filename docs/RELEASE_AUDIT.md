@@ -30,7 +30,7 @@ A repository history audit found old commits and generated bundles with client-s
 
 ## Licensing and provenance
 
-- Original PitOpt code: MIT. This assumes the releaser owns or has permission to license the included original source.
+- Original PitOpt code: AGPL-3.0-only (releases up to v0.4.0: MIT). This assumes the releaser owns or has permission to license the included original source.
 - The former `pseudoflow` dependency identified itself as “Non-commercial license. Not an open-source license.” It was removed. No pseudoflow code is copied. The public implementation uses NetworkX preflow-push (BSD-3-Clause).
 - MineLib `zuck_small` is a separate CC BY-SA 3.0 dataset with attribution and source recorded in its folder. Keep its license notice with the data; this is not relicensed as MIT.
 - IBM Plex font files retain SIL OFL 1.1; the upstream notice is included alongside them.

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Block model viewer: plan slices per bench and E-W / N-S sections, coloured by any attribute.
 import { S, notify } from "../store.js";

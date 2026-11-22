@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // A vertical section along a line: the designed wall (bench and berm), the optimiser shell's stair, a strip of the
 // block model one cell thick, the ground, and where the road crosses. Drawn at any vertical exaggeration; the scale
