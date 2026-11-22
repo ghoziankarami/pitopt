@@ -1046,5 +1046,9 @@
 "SHELL TIDAK BERSARANG": "NON-NESTED SHELLS",
 "shell pertama yang terisi": "first shell with material",
 "Beranda PitOpt →": "PitOpt home →",
-"Mulai cepat · Windows, macOS, Linux (Python 3.10+)": "Quick start · Windows, macOS, Linux (Python 3.10+)"
+"Mulai cepat · Windows, macOS, Linux (Python 3.10+)": "Quick start · Windows, macOS, Linux (Python 3.10+)",
+"Pit final akan dipindah ke RF {#}.": "The final pit will move to RF {#}.",
+"Pushback, jadwal, sensitivitas, dan desain harus dihitung ulang untuk pit yang baru.": "Pushbacks, schedule, sensitivity and design must be recalculated for the new pit.",
+"Pilihan manual — belum dijalankan.": "Manual choice — not run yet.",
+"Jalankan ulang dengan RF {#}": "Rerun with RF {#}"
 }

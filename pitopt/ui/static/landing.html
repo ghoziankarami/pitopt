@@ -4,7 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PitOpt — Optimasi Tambang Terbuka</title>
-<meta name="description" content="PitOpt: optimasi batas tambang terbuka secara eksak, pushback, jadwal produksi, dan desain jenjang. Berjalan lokal, offline.">
+<meta name="description" content="PitOpt: perangkat lunak sumber terbuka untuk perencanaan tambang terbuka. Optimasi batas pit eksak, pushback, jadwal produksi, desain jenjang dan ramp. Berjalan di komputer Anda.">
+<link rel="canonical" href="https://pitopt.orebit.id/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://pitopt.orebit.id/">
+<meta property="og:title" content="PitOpt — open-source open-pit mine planning">
+<meta property="og:description" content="Exact ultimate-pit optimisation, pushbacks, schedule, and benched pit design with ramps. Runs on your own computer. Try the synthetic demo or watch the 75-second how-to.">
+<meta property="og:image" content="https://pitopt.orebit.id/static/img/og-pitopt-2026-11.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="PitOpt results summary and benched pit design">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://pitopt.orebit.id/static/img/og-pitopt-2026-11.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M2 5H20L16.5 10H13L10.5 15H7L5.5 19H2Z' fill='%23C9A97A' stroke='%238A6A3B' stroke-width='1.2'/%3E%3C/svg%3E">
 <style>
 @font-face{font-family:"IBM Plex Sans";src:url("/static/fonts/IBMPlexSans-var.woff2") format("woff2");font-weight:100 700;font-display:swap}
@@ -13,7 +24,7 @@
 :root{--bg:#f6f4ef;--surface:#fff;--ink:#1d2430;--muted:#5b6575;--line:#dcd6c8;--accent:#8a6a3b;--accent-ink:#fff;--gold:#c9a97a;--code:#eceae3}
 :root[data-theme="dark"]{--bg:#12161d;--surface:#1a202b;--ink:#e8ebf1;--muted:#a3adbd;--line:#2b3445;--accent:#d8b78a;--accent-ink:#12161d;--code:#0e1218}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161d;--surface:#1a202b;--ink:#e8ebf1;--muted:#a3adbd;--line:#2b3445;--accent:#d8b78a;--accent-ink:#12161d;--code:#0e1218}}
-*{box-sizing:border-box}html,body{margin:0}
+*{box-sizing:border-box}html,body{margin:0}html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
 a{color:var(--accent)}
 .wrap{max-width:1120px;margin:0 auto;padding:0 16px}
@@ -35,51 +46,62 @@ h1{font-size:clamp(30px,4.2vw,46px);line-height:1.1;margin:0 0 18px;font-weight:
 .btn.primary{background:var(--ink);color:var(--bg)}
 .facts{margin:22px 0 0;font:13px "IBM Plex Mono",monospace;color:var(--muted)}
 .shot{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);box-shadow:0 14px 40px -18px rgba(20,24,32,.35)}
-.shot img{display:block;width:100%;height:auto}
+.shot img,.shot video{display:block;width:100%;height:auto}
 .shot figcaption,.cap{font-size:12px;color:var(--muted);padding:8px 12px;border-top:1px solid var(--line)}
 .nums{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 .nums div{padding:16px 18px;border-left:1px solid var(--line)}.nums div:first-child{border-left:0}
 .nums b{display:block;font:500 26px "IBM Plex Mono",monospace;letter-spacing:-.02em}
 .nums span{font-size:12px;color:var(--muted)}
 .note{font-size:12px;color:var(--muted);margin:8px 0 0}
-section{padding:52px 0 0}
+section{padding:56px 0 0;scroll-margin-top:8px}
 h2{font-size:24px;margin:0 0 6px;font-weight:620;letter-spacing:-.01em}
-.sub{color:var(--muted);margin:0 0 24px;max-width:620px}
+h3{font-size:15px;margin:0 0 4px;font-weight:620}
+.sub{color:var(--muted);margin:0 0 24px;max-width:640px}
+.video{max-width:960px}
+.video video{aspect-ratio:16/9;background:#11151b}
 .flow{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:36px;align-items:start}
+.flow .shots{display:grid;gap:18px}
 ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
-ol.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;padding:14px 0;border-top:1px solid var(--line)}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;padding:13px 0;border-top:1px solid var(--line)}
 ol.steps li:before{content:counter(s,decimal-leading-zero);font:500 12px "IBM Plex Mono",monospace;color:var(--accent);padding-top:3px}
 ol.steps b{display:block;font-weight:600}ol.steps span{color:var(--muted);font-size:14.5px}
-.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
-.cols div{padding:16px 20px 0 0}.cols h3{font-size:15px;margin:0 0 4px}.cols p{margin:0;font-size:14px;color:var(--muted)}
+.feats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 28px;border-top:1px solid var(--line)}
+.feats div{padding:16px 0;border-bottom:1px solid var(--line)}
+.feats p{margin:0;font-size:14px;color:var(--muted)}
+.feats code,.limits code{font:12.5px "IBM Plex Mono",monospace;background:var(--code);padding:1px 4px;border-radius:3px}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 28px;border-top:1px solid var(--line)}
+.cols div{padding:16px 0 0}.cols p{margin:0;font-size:14px;color:var(--muted)}
+.limits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;border-top:1px solid var(--line)}
+.limits div{padding:16px 0;border-bottom:1px solid var(--line)}.limits p{margin:0;font-size:14px;color:var(--muted)}
 .os{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .os h3{font-size:13px;margin:0 0 6px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 pre{margin:0;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:11px 13px;overflow-x:auto;font:13px "IBM Plex Mono",monospace}
+.cli{margin-top:22px}.cli h3{margin-bottom:8px}
 footer{margin-top:64px;padding:24px 0 40px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;display:flex;gap:24px;justify-content:space-between;flex-wrap:wrap}
 footer p{margin:0;max-width:640px}footer a{color:var(--muted)}
-@media(max-width:860px){.hero,.flow{grid-template-columns:1fr}.hero{padding-top:32px}.nums{grid-template-columns:repeat(2,1fr)}.nums div:nth-child(odd){border-left:0}.nums div{border-top:1px solid var(--line)}.cols,.os{grid-template-columns:minmax(0,1fr)}nav.links a.hide-s{display:none}}
+@media(max-width:860px){.nums b{font-size:22px}.hero,.flow{grid-template-columns:1fr}.hero{padding-top:32px}.nums{grid-template-columns:repeat(2,1fr)}.nums div:nth-child(odd){border-left:0}.nums div{border-top:1px solid var(--line)}.cols,.os,.feats,.limits{grid-template-columns:minmax(0,1fr)}nav.links a.hide-s{display:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header class="top">
   <a class="brand" href="/" aria-label="PitOpt"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M2 5H20L16.5 10H13L10.5 15H7L5.5 19H2Z" fill="#C9A97A" stroke="#8A6A3B" stroke-width="1.2"/></svg>PitOpt <small>v1.0.0</small></a>
-  <nav class="links"><a class="hide-s" href="#alur" data-i18n="nAlur">Alur kerja</a><a class="hide-s" href="#pasang" data-i18n="nPasang">Pasang</a><a href="/demo" data-i18n="nDemo">Demo</a><a href="https://github.com/ghoziankarami/pitopt" target="_blank" rel="noopener noreferrer">GitHub</a>
+  <nav class="links"><a class="hide-s" href="#video" data-i18n="nVideo">Video</a><a class="hide-s" href="#fitur" data-i18n="nFitur">Fitur</a><a class="hide-s" href="#cara" data-i18n="nCara">Cara pakai</a><a class="hide-s" href="#pasang" data-i18n="nPasang">Pasang</a><a class="hide-s" href="#batas" data-i18n="nBatas">Data &amp; batas</a><a href="/demo" data-i18n="nDemo">Demo</a><a href="https://github.com/ghoziankarami/pitopt" target="_blank" rel="noopener noreferrer">GitHub</a>
     <span class="tools"><button type="button" id="lang-id" data-lang="id" aria-pressed="true">ID</button><button type="button" id="lang-en" data-lang="en" aria-pressed="false">EN</button><button type="button" id="theme-toggle" aria-pressed="false" data-i18n="theme">Gelap</button></span></nav>
 </header>
 <main>
 <div class="hero">
   <div>
     <h1 data-i18n="h1">Dari block model ke desain pit, dihitung eksak.</h1>
-    <p class="lead" data-i18n="lead">PitOpt mencari batas tambang optimal lewat maximum-closure, memilih pit akhir berdasarkan NPV, lalu menyusun pushback, jadwal produksi, dan desain jenjang. Berjalan di komputer Anda, tanpa internet.</p>
-    <div class="cta"><a class="btn primary" href="/demo" data-i18n="ctaDemo">Buka demo</a><a class="btn" href="#pasang" data-i18n="ctaInstall">Pasang di komputer</a></div>
-    <p class="facts" data-i18n="facts">AGPL-3.0 · offline · Windows, macOS, Linux</p>
+    <p class="lead" data-i18n="lead">PitOpt mencari batas tambang optimal lewat maximum-closure, memilih pit akhir berdasarkan NPV, lalu menyusun pushback, jadwal produksi, dan desain jenjang dengan ramp. Berjalan di komputer Anda, tanpa internet.</p>
+    <div class="cta"><a class="btn primary" href="/demo" data-i18n="ctaDemo">Buka demo</a><a class="btn" href="#video" data-i18n="ctaVideo">Tonton cara pakai (75 dtk)</a><a class="btn" href="#pasang" data-i18n="ctaInstall">Pasang di komputer</a></div>
+    <p class="facts" data-i18n="facts">AGPL-3.0 · offline · Windows, macOS, Linux · Indonesia &amp; Inggris</p>
   </div>
-  <figure class="shot" style="margin:0"><img src="/static/img/summary.webp" width="1600" alt="Ringkasan hasil PitOpt untuk dataset porfiri sintetis" fetchpriority="high"><figcaption data-i18n="cap1">Ringkasan hasil, dataset porfiri sintetis bawaan.</figcaption></figure>
+  <figure class="shot" style="margin:0"><img src="/static/img/summary.webp" width="1600" height="1000" alt="Ringkasan hasil PitOpt untuk dataset porfiri sintetis" fetchpriority="high"><figcaption data-i18n="cap1">Ringkasan hasil, dataset porfiri sintetis bawaan.</figcaption></figure>
 </div>
 
 <div class="nums" role="list">
-  <div role="listitem"><b>75.696</b><span data-i18n="n1">blok dalam pit akhir</span></div>
+  <div role="listitem"><b>75.696</b><span data-i18n="n1">blok dalam model</span></div>
   <div role="listitem"><b>10</b><span data-i18n="n2">shell revenue factor</span></div>
   <div role="listitem"><b>3</b><span data-i18n="n3">pushback</span></div>
   <div role="listitem"><b>19</b><span data-i18n="n4">tahun umur tambang</span></div>
@@ -87,37 +109,68 @@ footer p{margin:0;max-width:640px}footer a{color:var(--muted)}
 </div>
 <p class="note" data-i18n="nnote">Angka dari proyek contoh sintetis yang dapat dibuka di demo; bukan data tambang nyata.</p>
 
-<section id="alur">
-  <div class="flow">
-    <div>
-      <h2 data-i18n="h2a">Satu alur, dari file CSV sampai laporan</h2>
-      <p class="sub" data-i18n="s2a">Setiap langkah menampilkan asumsi yang belum Anda isi, supaya angka tidak keluar tanpa konteks.</p>
-      <ol class="steps">
-        <li><div><b data-i18n="a1t">Impor data</b><span data-i18n="a1p">Block model CSV dan topografi DXF atau XYZ. Kolom dan ukuran blok dikenali otomatis.</span></div></li>
-        <li><div><b data-i18n="a2t">Shell bertingkat</b><span data-i18n="a2p">Closure eksak per revenue factor, diperiksa ulang dengan solver max-flow independen.</span></div></li>
-        <li><div><b data-i18n="a3t">Pit akhir dan pushback</b><span data-i18n="a3p">Pit dipilih berdasarkan NPV, lalu dipecah menjadi tahap penambangan.</span></div></li>
-        <li><div><b data-i18n="a4t">Jadwal produksi</b><span data-i18n="a4p">Jadwal per periode dengan batas kapasitas dan rentang NPV kasus terbaik dan terburuk.</span></div></li>
-        <li><div><b data-i18n="a5t">Desain jenjang</b><span data-i18n="a5p">Bench, berm, dan ramp per sektor geoteknik, direkonsiliasi ke shell hasil optimasi.</span></div></li>
-        <li><div><b data-i18n="a6t">Ekspor</b><span data-i18n="a6p">Excel, PDF, DXF, dan viewer 3D HTML yang jalan offline.</span></div></li>
-      </ol>
-    </div>
-    <figure class="shot" style="margin:0"><img src="/static/img/pushback.webp" width="1600" loading="lazy" alt="Denah pit akhir per pushback dan tabel pushback"><figcaption data-i18n="cap2">Pushback dan jadwal periode untuk dataset yang sama.</figcaption></figure>
+<section id="video">
+  <h2 data-i18n="h2v">Cara pakai dalam 75 detik</h2>
+  <p class="sub" data-i18n="s2v">Rekaman layar asli aplikasi, satu bab per fitur. Beberapa bagian dipercepat; kecepatannya tertera di pojok layar. Narasi bahasa Inggris, takarir tersedia.</p>
+  <figure class="shot video" style="margin:0">
+    <video controls preload="none" playsinline poster="/media/pitopt-howto-2026-11-poster.jpg" width="1920" height="1080">
+      <source src="/media/pitopt-howto-2026-11.mp4" type="video/mp4">
+      <track kind="captions" src="/media/pitopt-howto-2026-11.en.vtt" srclang="en" label="English">
+    </video>
+    <figcaption data-i18n="capv">Estimasi cepat, parameter, pit by pit, pushback, desain detail, 3D, ekspor. Dataset sintetis.</figcaption>
+  </figure>
+</section>
+
+<section id="fitur">
+  <h2 data-i18n="h2f">Semua fitur</h2>
+  <p class="sub" data-i18n="s2f">Satu aplikasi lokal untuk alur strategis sampai desain awal. Semuanya tersedia di aplikasi desktop; demo web hanya baca.</p>
+  <div class="feats">
+    <div><h3 data-i18n="f1t">Estimasi cepat</h3><p data-i18n="f1p">Satu layar: pilih sampel atau unggah CSV, pra-validasi dan perkiraan RAM instan, jalankan, lalu lihat NPV, tonase, dan pratinjau 3D.</p></div>
+    <div><h3 data-i18n="f2t">Impor data apa adanya</h3><p data-i18n="f2p">Block model CSV dari ekspor Surpac, Datamine, Vulcan, GEMS, Leapfrog; topografi DXF atau CSV XYZ. Kolom dan ukuran blok dikenali otomatis; model sub-sel diregulerkan dengan reblock.</p></div>
+    <div><h3 data-i18n="f3t">QA data</h3><p data-i18n="f3p">Cek grid reguler, cakupan topografi, dan pit yang menyentuh batas model, plus tabel domain × kelas sumber daya sebelum optimasi.</p></div>
+    <div><h3 data-i18n="f4t">Parameter dengan asal-usul</h3><p data-i18n="f4p">Harga, biaya, recovery, dilusi, royalti, lereng. Multi-produk dan by-product. Nilai turunan dihitung langsung; setiap nilai yang tidak Anda isi ditandai asumsi. Skenario bisa digandakan dan disimpan.</p></div>
+    <div><h3 data-i18n="f5t">Pit akhir eksak</h3><p data-i18n="f5p">Setiap shell adalah maximum closure (NetworkX preflow-push), diperiksa ulang dengan solver max-flow independen dan brute force.</p></div>
+    <div><h3 data-i18n="f6t">Pit by pit</h3><p data-i18n="f6p">Shell bertingkat per revenue factor dengan NPV kasus terbaik, terburuk, dan rata-rata. Pit akhir dipilih dari NPV terdiskonto; Anda bisa memilih shell lain lalu menjalankan ulang.</p></div>
+    <div><h3 data-i18n="f7t">Pushback dan jadwal</h3><p data-i18n="f7p">Pushback otomatis, jadwal per periode dengan batas kapasitas umpan, rencana dibanding kasus terbaik dan terburuk, denah per pushback, periode, atau kedalaman.</p></div>
+    <div><h3 data-i18n="f8t">Sensitivitas</h3><p data-i18n="f8p">NPV pit akhir terhadap faktor harga 70–130%, dengan break-even dan leverage harga.</p></div>
+    <div><h3 data-i18n="f9t">Penampil block model</h3><p data-i18n="f9p">Irisan per bench atau penampang U–S dan B–T, diwarnai kadar, kelas, atau nilai.</p></div>
+    <div><h3 data-i18n="f10t">Desain detail</h3><p data-i18n="f10p">Crest dan sektor geoteknik per azimut, kriteria berm (Ritchie, Ryan, atau dari lereng optimasi), ramp spiral atau switchback dari lebar truk, lalu generate jenjang dan ramp.</p></div>
+    <div><h3 data-i18n="f11t">Validasi dan rekonsiliasi</h3><p data-i18n="f11p">IRA dan lereng overall dihitung ulang dari geometri hasil desain; pelanggaran ditandai per sektor. Tonase dan nilai desain dibandingkan dengan shell optimasi. Penampang 1:1.</p></div>
+    <div><h3 data-i18n="f12t">3D dan penampang</h3><p data-i18n="f12p">Topografi, shell, face position, pushback, dan posisi akhir tiap periode yang bisa diputar. Eksagerasi vertikal 1–10×; tarik garis penampang di denah.</p></div>
+    <div><h3 data-i18n="f13t">Bandingkan skenario</h3><p data-i18n="f13p">Hasil beberapa skenario satu proyek berdampingan.</p></div>
+    <div><h3 data-i18n="f14t">Ekspor</h3><p data-i18n="f14p">Excel, laporan PDF dengan peringatan aktif, permukaan dan jenjang DXF untuk software tambang, viewer 3D HTML yang jalan offline, tabel CSV/XLSX, sesi JSON berisi asal-usul parameter, paket zip.</p></div>
+    <div><h3 data-i18n="f15t">CLI, MCP, dua bahasa</h3><p data-i18n="f15p">Perintah <code>pitopt validate</code>, <code>run</code>, <code>reblock</code>, <code>ui</code> untuk skrip; server MCP opsional untuk asisten AI. Antarmuka Indonesia atau Inggris, mode gelap.</p></div>
   </div>
 </section>
 
-<section>
-  <h2 data-i18n="h2b">Yang perlu Anda ketahui sebelum memakainya</h2>
-  <p class="sub" data-i18n="s2b">Closure-nya eksak; sisanya pendekatan. Hasil ini bukan estimasi sumber daya atau cadangan.</p>
-  <div class="cols">
-    <div><h3 data-i18n="b1t">Pendekatan, bukan optimum jadwal</h3><p data-i18n="b1p">Jadwal mengikuti urutan pushback yang ditentukan, bukan dioptimalkan per blok.</p></div>
-    <div><h3 data-i18n="b2t">Batas ukuran model</h3><p data-i18n="b2p">Graf berada di memori, jadi model dibatasi sekitar ratusan ribu blok.</p></div>
-    <div><h3 data-i18n="b3t">Perlu tinjauan ahli</h3><p data-i18n="b3p">Desain wajib ditinjau Competent Person sesuai standar industri sebelum dipakai.</p></div>
+<section id="cara">
+  <div class="flow">
+    <div>
+      <h2 data-i18n="h2a">Cara pakai, langkah demi langkah</h2>
+      <p class="sub" data-i18n="s2a">Dengan data Anda sendiri di aplikasi desktop. Di demo web, langkah 1–3 dilewati dan hasilnya sudah dihitung.</p>
+      <ol class="steps">
+        <li><div><b data-i18n="a1t">Pasang dan buka</b><span data-i18n="a1p">Jalankan peluncur (lihat Pasang). Aplikasi terbuka di peramban pada http://127.0.0.1:8765.</span></div></li>
+        <li><div><b data-i18n="a2t">Muat data</b><span data-i18n="a2p">Estimasi Cepat untuk hasil kilat, atau Kelola → Proyek baru untuk wizard lengkap. Unggah block model CSV dan, bila ada, topografi DXF atau XYZ.</span></div></li>
+        <li><div><b data-i18n="a3t">Isi parameter</b><span data-i18n="a3p">Periksa kolom koordinat dan ukuran blok, lalu isi harga, biaya, recovery, lereng, dan kapasitas atau umur tambang. Yang tidak diisi tercatat sebagai asumsi.</span></div></li>
+        <li><div><b data-i18n="a4t">Jalankan</b><span data-i18n="a4p">Klik Jalankan optimasi. Model kecil selesai dalam detik; model ratusan ribu blok bisa butuh menit. RAM diperiksa sebelum mulai.</span></div></li>
+        <li><div><b data-i18n="a5t">Baca peringatan dan ringkasan</b><span data-i18n="a5p">QA Data dan kotak peringatan di Ringkasan menunjukkan apa yang perlu dicek sebelum angka dipakai.</span></div></li>
+        <li><div><b data-i18n="a6t">Tetapkan pit akhir</b><span data-i18n="a6p">Di Pit by Pit, terima rekomendasi atau klik shell lain dan jalankan ulang.</span></div></li>
+        <li><div><b data-i18n="a7t">Tinjau pushback dan jadwal</b><span data-i18n="a7p">Denah per pushback dan periode, tabel rencana per periode, NPV kasus terbaik dan terburuk.</span></div></li>
+        <li><div><b data-i18n="a8t">Rancang jenjang</b><span data-i18n="a8p">Desain Detail: atur sektor dan ramp, Generate, lalu perbaiki yang ditandai di Validasi.</span></div></li>
+        <li><div><b data-i18n="a9t">Ekspor</b><span data-i18n="a9p">Unduh Excel, PDF, DXF, atau viewer 3D, atau semuanya sekaligus sebagai zip.</span></div></li>
+      </ol>
+    </div>
+    <div class="shots">
+      <figure class="shot" style="margin:0"><img src="/static/img/pitbypit.webp" width="1600" height="1000" loading="lazy" alt="Grafik pit by pit dengan pit akhir RF 0,50"><figcaption data-i18n="cap3">Pit by pit: satu batang per shell, pit akhir dipilih dari NPV terdiskonto.</figcaption></figure>
+      <figure class="shot" style="margin:0"><img src="/static/img/pushback.webp" width="1600" height="1000" loading="lazy" alt="Denah pit akhir per pushback dan tabel pushback"><figcaption data-i18n="cap2">Pushback dan jadwal periode untuk dataset yang sama.</figcaption></figure>
+      <figure class="shot" style="margin:0"><img src="/static/img/design.webp" width="1600" height="1000" loading="lazy" alt="Layar Generate &amp; Tinjau dengan jenjang dan ramp dalam 3D"><figcaption data-i18n="cap4">Desain detail: 27 jenjang dan ramp spiral, pelanggaran lereng ditampilkan di atas.</figcaption></figure>
+    </div>
   </div>
 </section>
 
 <section id="pasang">
   <h2 data-i18n="h2c">Pasang di komputer Anda</h2>
-  <p class="sub" data-i18n="s2c">Butuh Python 3.10+ dan Git. Peluncur membuat lingkungan sendiri pada start pertama; data Anda tidak keluar dari komputer.</p>
+  <p class="sub" data-i18n="s2c">Butuh Python 3.10+ dan Git. Peluncur membuat lingkungan sendiri pada start pertama (beberapa menit), start berikutnya hanya detik. Data Anda tidak keluar dari komputer.</p>
   <div class="os">
     <div><h3>Windows</h3><pre>git clone https://github.com/ghoziankarami/pitopt.git
 cd pitopt
@@ -129,7 +182,27 @@ bash PitOpt.command</pre></div>
 cd pitopt
 bash scripts/start_ui.sh</pre></div>
   </div>
-  <p class="note"><span data-i18n="inote">Langkah lengkap dan pemecahan masalah:</span> <a href="https://github.com/ghoziankarami/pitopt/blob/main/docs/INSTALLATION.md" target="_blank" rel="noopener noreferrer">docs/INSTALLATION.md</a></p>
+  <div class="cli"><h3 data-i18n="cliT">Dari baris perintah</h3><pre>source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pitopt validate --config projects/example_tin/project.yaml
+pitopt run      --config projects/example_tin/project.yaml
+pitopt ui</pre></div>
+  <p class="note"><span data-i18n="inote">Tanpa Git: unduh</span> <a href="https://github.com/ghoziankarami/pitopt/archive/refs/heads/main.zip">ZIP</a>. <span data-i18n="inote2">Langkah lengkap dan pemecahan masalah:</span> <a href="https://github.com/ghoziankarami/pitopt/blob/main/docs/INSTALLATION.md" target="_blank" rel="noopener noreferrer">docs/INSTALLATION.md</a> · <span data-i18n="inote3">Kode sumber:</span> <a href="https://github.com/ghoziankarami/pitopt" target="_blank" rel="noopener noreferrer">github.com/ghoziankarami/pitopt</a></p>
+</section>
+
+<section id="batas">
+  <h2 data-i18n="h2b">Data dan batasan</h2>
+  <p class="sub" data-i18n="s2b">Closure-nya eksak; sisanya pendekatan. Hasil ini bukan estimasi sumber daya atau cadangan.</p>
+  <div class="limits">
+    <div><h3 data-i18n="d1t">Data di demo</h3><p data-i18n="d1p">Dua proyek sintetis: porfiri tembaga (75.696 blok 20×20×15 m) yang dibangkitkan skrip, dan contoh timah kecil. Bukan data tambang nyata. Demo web hanya baca dan memakai hasil yang sudah dihitung.</p></div>
+    <div><h3 data-i18n="d2t">Data Anda</h3><p data-i18n="d2p">Di aplikasi desktop, berkas disimpan di folder proyek pada komputer Anda dan tidak dikirim ke mana pun.</p></div>
+    <div><h3 data-i18n="b1t">Jadwal berurutan, bukan optimum per blok</h3><p data-i18n="b1p">Jadwal mengisi periode sampai kapasitas mengikuti urutan pushback; blok tidak diurutkan ulang dengan MILP. Jarak angkut dan alat tidak dimodelkan.</p></div>
+    <div><h3 data-i18n="b4t">Satu tujuan, satu model</h3><p data-i18n="b4p">Pabrik atau waste; tanpa stockpile, blending, atau beberapa jalur proses. Satu model estimasi deterministik, tanpa ketidakpastian kadar.</p></div>
+    <div><h3 data-i18n="b2t">Batas ukuran model</h3><p data-i18n="b2p">Graf berada di memori, jadi model dibatasi sekitar ratusan ribu blok. Reblock ke blok lebih besar atau potong area model untuk deposit yang lebih besar.</p></div>
+    <div><h3 data-i18n="b5t">Desain otomatis, bukan desain rinci</h3><p data-i18n="b5p">Jenjang, berm, dan ramp adalah desain awal untuk rekonsiliasi, bukan pengganti desain rinci dan kajian geoteknik.</p></div>
+    <div><h3 data-i18n="b3t">Perlu tinjauan ahli</h3><p data-i18n="b3p">Desain wajib ditinjau Competent Person sesuai standar industri sebelum dipakai.</p></div>
+    <div><h3 data-i18n="b6t">Lisensi</h3><p data-i18n="b6p">Kode AGPL-3.0-only. Font OFL-1.1 dan berkas benchmark MineLib CC BY-SA 3.0 memakai lisensinya sendiri.</p></div>
+  </div>
+  <p class="note"><span data-i18n="lnote">Rincian lengkap:</span> <a href="https://github.com/ghoziankarami/pitopt/blob/main/docs/TECHNICAL.md#what-this-is-not" target="_blank" rel="noopener noreferrer">TECHNICAL.md — What this is not</a></p>
 </section>
 </main>
 <footer>
@@ -140,49 +213,107 @@ bash scripts/start_ui.sh</pre></div>
 <script>
 (function () {
   var dict = {
-    id: {theme:"Gelap",nAlur:"Alur kerja",nPasang:"Pasang",nDemo:"Demo",
+    id: {theme:"Gelap",nVideo:"Video",nFitur:"Fitur",nCara:"Cara pakai",nPasang:"Pasang",nBatas:"Data & batas",nDemo:"Demo",
       h1:"Dari block model ke desain pit, dihitung eksak.",
-      lead:"PitOpt mencari batas tambang optimal lewat maximum-closure, memilih pit akhir berdasarkan NPV, lalu menyusun pushback, jadwal produksi, dan desain jenjang. Berjalan di komputer Anda, tanpa internet.",
-      ctaDemo:"Buka demo",ctaInstall:"Pasang di komputer",facts:"AGPL-3.0 · offline · Windows, macOS, Linux",
+      lead:"PitOpt mencari batas tambang optimal lewat maximum-closure, memilih pit akhir berdasarkan NPV, lalu menyusun pushback, jadwal produksi, dan desain jenjang dengan ramp. Berjalan di komputer Anda, tanpa internet.",
+      ctaDemo:"Buka demo",ctaVideo:"Tonton cara pakai (75 dtk)",ctaInstall:"Pasang di komputer",facts:"AGPL-3.0 · offline · Windows, macOS, Linux · Indonesia & Inggris",
       cap1:"Ringkasan hasil, dataset porfiri sintetis bawaan.",
-      n1:"blok dalam pit akhir",n2:"shell revenue factor",n3:"pushback",n4:"tahun umur tambang",n5:"pelanggaran verifikasi",
+      n1:"blok dalam model",n2:"shell revenue factor",n3:"pushback",n4:"tahun umur tambang",n5:"pelanggaran verifikasi",
       nnote:"Angka dari proyek contoh sintetis yang dapat dibuka di demo; bukan data tambang nyata.",
-      h2a:"Satu alur, dari file CSV sampai laporan",s2a:"Setiap langkah menampilkan asumsi yang belum Anda isi, supaya angka tidak keluar tanpa konteks.",
-      a1t:"Impor data",a1p:"Block model CSV dan topografi DXF atau XYZ. Kolom dan ukuran blok dikenali otomatis.",
-      a2t:"Shell bertingkat",a2p:"Closure eksak per revenue factor, diperiksa ulang dengan solver max-flow independen.",
-      a3t:"Pit akhir dan pushback",a3p:"Pit dipilih berdasarkan NPV, lalu dipecah menjadi tahap penambangan.",
-      a4t:"Jadwal produksi",a4p:"Jadwal per periode dengan batas kapasitas dan rentang NPV kasus terbaik dan terburuk.",
-      a5t:"Desain jenjang",a5p:"Bench, berm, dan ramp per sektor geoteknik, direkonsiliasi ke shell hasil optimasi.",
-      a6t:"Ekspor",a6p:"Excel, PDF, DXF, dan viewer 3D HTML yang jalan offline.",
+      h2v:"Cara pakai dalam 75 detik",s2v:"Rekaman layar asli aplikasi, satu bab per fitur. Beberapa bagian dipercepat; kecepatannya tertera di pojok layar. Narasi bahasa Inggris, takarir tersedia.",
+      capv:"Estimasi cepat, parameter, pit by pit, pushback, desain detail, 3D, ekspor. Dataset sintetis.",
+      h2f:"Semua fitur",s2f:"Satu aplikasi lokal untuk alur strategis sampai desain awal. Semuanya tersedia di aplikasi desktop; demo web hanya baca.",
+      f1t:"Estimasi cepat",f1p:"Satu layar: pilih sampel atau unggah CSV, pra-validasi dan perkiraan RAM instan, jalankan, lalu lihat NPV, tonase, dan pratinjau 3D.",
+      f2t:"Impor data apa adanya",f2p:"Block model CSV dari ekspor Surpac, Datamine, Vulcan, GEMS, Leapfrog; topografi DXF atau CSV XYZ. Kolom dan ukuran blok dikenali otomatis; model sub-sel diregulerkan dengan reblock.",
+      f3t:"QA data",f3p:"Cek grid reguler, cakupan topografi, dan pit yang menyentuh batas model, plus tabel domain × kelas sumber daya sebelum optimasi.",
+      f4t:"Parameter dengan asal-usul",f4p:"Harga, biaya, recovery, dilusi, royalti, lereng. Multi-produk dan by-product. Nilai turunan dihitung langsung; setiap nilai yang tidak Anda isi ditandai asumsi. Skenario bisa digandakan dan disimpan.",
+      f5t:"Pit akhir eksak",f5p:"Setiap shell adalah maximum closure (NetworkX preflow-push), diperiksa ulang dengan solver max-flow independen dan brute force.",
+      f6t:"Pit by pit",f6p:"Shell bertingkat per revenue factor dengan NPV kasus terbaik, terburuk, dan rata-rata. Pit akhir dipilih dari NPV terdiskonto; Anda bisa memilih shell lain lalu menjalankan ulang.",
+      f7t:"Pushback dan jadwal",f7p:"Pushback otomatis, jadwal per periode dengan batas kapasitas umpan, rencana dibanding kasus terbaik dan terburuk, denah per pushback, periode, atau kedalaman.",
+      f8t:"Sensitivitas",f8p:"NPV pit akhir terhadap faktor harga 70–130%, dengan break-even dan leverage harga.",
+      f9t:"Penampil block model",f9p:"Irisan per bench atau penampang U–S dan B–T, diwarnai kadar, kelas, atau nilai.",
+      f10t:"Desain detail",f10p:"Crest dan sektor geoteknik per azimut, kriteria berm (Ritchie, Ryan, atau dari lereng optimasi), ramp spiral atau switchback dari lebar truk, lalu generate jenjang dan ramp.",
+      f11t:"Validasi dan rekonsiliasi",f11p:"IRA dan lereng overall dihitung ulang dari geometri hasil desain; pelanggaran ditandai per sektor. Tonase dan nilai desain dibandingkan dengan shell optimasi. Penampang 1:1.",
+      f12t:"3D dan penampang",f12p:"Topografi, shell, face position, pushback, dan posisi akhir tiap periode yang bisa diputar. Eksagerasi vertikal 1–10×; tarik garis penampang di denah.",
+      f13t:"Bandingkan skenario",f13p:"Hasil beberapa skenario satu proyek berdampingan.",
+      f14t:"Ekspor",f14p:"Excel, laporan PDF dengan peringatan aktif, permukaan dan jenjang DXF untuk software tambang, viewer 3D HTML yang jalan offline, tabel CSV/XLSX, sesi JSON berisi asal-usul parameter, paket zip.",
+      f15t:"CLI, MCP, dua bahasa",f15p:"Perintah <code>pitopt validate</code>, <code>run</code>, <code>reblock</code>, <code>ui</code> untuk skrip; server MCP opsional untuk asisten AI. Antarmuka Indonesia atau Inggris, mode gelap.",
+      h2a:"Cara pakai, langkah demi langkah",s2a:"Dengan data Anda sendiri di aplikasi desktop. Di demo web, langkah 1–3 dilewati dan hasilnya sudah dihitung.",
+      a1t:"Pasang dan buka",a1p:"Jalankan peluncur (lihat Pasang). Aplikasi terbuka di peramban pada http://127.0.0.1:8765.",
+      a2t:"Muat data",a2p:"Estimasi Cepat untuk hasil kilat, atau Kelola → Proyek baru untuk wizard lengkap. Unggah block model CSV dan, bila ada, topografi DXF atau XYZ.",
+      a3t:"Isi parameter",a3p:"Periksa kolom koordinat dan ukuran blok, lalu isi harga, biaya, recovery, lereng, dan kapasitas atau umur tambang. Yang tidak diisi tercatat sebagai asumsi.",
+      a4t:"Jalankan",a4p:"Klik Jalankan optimasi. Model kecil selesai dalam detik; model ratusan ribu blok bisa butuh menit. RAM diperiksa sebelum mulai.",
+      a5t:"Baca peringatan dan ringkasan",a5p:"QA Data dan kotak peringatan di Ringkasan menunjukkan apa yang perlu dicek sebelum angka dipakai.",
+      a6t:"Tetapkan pit akhir",a6p:"Di Pit by Pit, terima rekomendasi atau klik shell lain dan jalankan ulang.",
+      a7t:"Tinjau pushback dan jadwal",a7p:"Denah per pushback dan periode, tabel rencana per periode, NPV kasus terbaik dan terburuk.",
+      a8t:"Rancang jenjang",a8p:"Desain Detail: atur sektor dan ramp, Generate, lalu perbaiki yang ditandai di Validasi.",
+      a9t:"Ekspor",a9p:"Unduh Excel, PDF, DXF, atau viewer 3D, atau semuanya sekaligus sebagai zip.",
+      cap3:"Pit by pit: satu batang per shell, pit akhir dipilih dari NPV terdiskonto.",
       cap2:"Pushback dan jadwal periode untuk dataset yang sama.",
-      h2b:"Yang perlu Anda ketahui sebelum memakainya",s2b:"Closure-nya eksak; sisanya pendekatan. Hasil ini bukan estimasi sumber daya atau cadangan.",
-      b1t:"Pendekatan, bukan optimum jadwal",b1p:"Jadwal mengikuti urutan pushback yang ditentukan, bukan dioptimalkan per blok.",
-      b2t:"Batas ukuran model",b2p:"Graf berada di memori, jadi model dibatasi sekitar ratusan ribu blok.",
+      cap4:"Desain detail: 27 jenjang dan ramp spiral, pelanggaran lereng ditampilkan di atas.",
+      h2c:"Pasang di komputer Anda",s2c:"Butuh Python 3.10+ dan Git. Peluncur membuat lingkungan sendiri pada start pertama (beberapa menit), start berikutnya hanya detik. Data Anda tidak keluar dari komputer.",
+      cliT:"Dari baris perintah",inote:"Tanpa Git: unduh",inote2:"Langkah lengkap dan pemecahan masalah:",inote3:"Kode sumber:",
+      h2b:"Data dan batasan",s2b:"Closure-nya eksak; sisanya pendekatan. Hasil ini bukan estimasi sumber daya atau cadangan.",
+      d1t:"Data di demo",d1p:"Dua proyek sintetis: porfiri tembaga (75.696 blok 20×20×15 m) yang dibangkitkan skrip, dan contoh timah kecil. Bukan data tambang nyata. Demo web hanya baca dan memakai hasil yang sudah dihitung.",
+      d2t:"Data Anda",d2p:"Di aplikasi desktop, berkas disimpan di folder proyek pada komputer Anda dan tidak dikirim ke mana pun.",
+      b1t:"Jadwal berurutan, bukan optimum per blok",b1p:"Jadwal mengisi periode sampai kapasitas mengikuti urutan pushback; blok tidak diurutkan ulang dengan MILP. Jarak angkut dan alat tidak dimodelkan.",
+      b4t:"Satu tujuan, satu model",b4p:"Pabrik atau waste; tanpa stockpile, blending, atau beberapa jalur proses. Satu model estimasi deterministik, tanpa ketidakpastian kadar.",
+      b2t:"Batas ukuran model",b2p:"Graf berada di memori, jadi model dibatasi sekitar ratusan ribu blok. Reblock ke blok lebih besar atau potong area model untuk deposit yang lebih besar.",
+      b5t:"Desain otomatis, bukan desain rinci",b5p:"Jenjang, berm, dan ramp adalah desain awal untuk rekonsiliasi, bukan pengganti desain rinci dan kajian geoteknik.",
       b3t:"Perlu tinjauan ahli",b3p:"Desain wajib ditinjau Competent Person sesuai standar industri sebelum dipakai.",
-      h2c:"Pasang di komputer Anda",s2c:"Butuh Python 3.10+ dan Git. Peluncur membuat lingkungan sendiri pada start pertama; data Anda tidak keluar dari komputer.",
-      inote:"Langkah lengkap dan pemecahan masalah:",
+      b6t:"Lisensi",b6p:"Kode AGPL-3.0-only. Font OFL-1.1 dan berkas benchmark MineLib CC BY-SA 3.0 memakai lisensinya sendiri.",
+      lnote:"Rincian lengkap:",
       foot:"PitOpt adalah perangkat lunak sumber terbuka berlisensi AGPL-3.0, dibuat oleh Orebit. Hasil desain wajib ditinjau Competent Person sebelum dipakai di lapangan."},
-    en: {theme:"Dark",nAlur:"Workflow",nPasang:"Install",nDemo:"Demo",
+    en: {theme:"Dark",nVideo:"Video",nFitur:"Features",nCara:"How to use",nPasang:"Install",nBatas:"Data & limits",nDemo:"Demo",
       h1:"From block model to pit design, computed exactly.",
-      lead:"PitOpt finds the optimal pit limit with maximum-closure, picks the final pit on NPV, then builds pushbacks, a production schedule and a benched design. It runs on your computer, offline.",
-      ctaDemo:"Open the demo",ctaInstall:"Install locally",facts:"AGPL-3.0 · offline · Windows, macOS, Linux",
+      lead:"PitOpt finds the optimal pit limit with maximum-closure, picks the final pit on NPV, then builds pushbacks, a production schedule and a benched design with a ramp. It runs on your computer, offline.",
+      ctaDemo:"Open the demo",ctaVideo:"Watch the how-to (75 s)",ctaInstall:"Install locally",facts:"AGPL-3.0 · offline · Windows, macOS, Linux · English & Indonesian",
       cap1:"Results summary for the bundled synthetic porphyry dataset.",
-      n1:"blocks in the final pit",n2:"revenue-factor shells",n3:"pushbacks",n4:"years of mine life",n5:"verification violations",
+      n1:"blocks in the model",n2:"revenue-factor shells",n3:"pushbacks",n4:"years of mine life",n5:"verification violations",
       nnote:"Figures come from the synthetic example project you can open in the demo; not real mine data.",
-      h2a:"One workflow, from CSV to report",s2a:"Every step shows the assumptions you have not filled in, so no number appears without context.",
-      a1t:"Import data",a1p:"Block model CSV and a DXF or XYZ topography. Columns and block size are detected for you.",
-      a2t:"Nested shells",a2p:"Exact closure per revenue factor, cross-checked with an independent max-flow solver.",
-      a3t:"Final pit and pushbacks",a3p:"The pit is chosen on NPV, then split into mining stages.",
-      a4t:"Production schedule",a4p:"A periodic schedule with capacity limits and best- and worst-case NPV bounds.",
-      a5t:"Benched design",a5p:"Benches, berms and ramps per geotechnical sector, reconciled to the optimised shell.",
-      a6t:"Export",a6p:"Excel, PDF, DXF and a 3D HTML viewer that works offline.",
+      h2v:"How to use it, in 75 seconds",s2v:"Real screen recordings of the app, one chapter per feature. Some parts are sped up; the speed is shown in the corner of the screen. English narration with captions.",
+      capv:"Quick estimate, parameters, pit by pit, pushbacks, detailed design, 3D, export. Synthetic dataset.",
+      h2f:"All features",s2f:"One local app for the strategic workflow through to a first-pass design. Everything is available in the desktop app; the web demo is read-only.",
+      f1t:"Quick estimate",f1p:"One screen: pick a sample or upload a CSV, get instant pre-validation and a RAM estimate, run, then see NPV, tonnes and a 3D preview.",
+      f2t:"Your data, as delivered",f2p:"Block model CSV from Surpac, Datamine, Vulcan, GEMS or Leapfrog exports; topography as DXF or CSV XYZ. Columns and block size are detected; sub-celled models are regularised with reblock.",
+      f3t:"Data QA",f3p:"Checks for a regular grid, topography coverage and a pit that touches the model boundary, plus a domain × resource-class table before you optimise.",
+      f4t:"Parameters with provenance",f4p:"Prices, costs, recoveries, dilution, royalty, slopes. Multi-product and by-product economics. Derived values update live; every value you did not enter is marked as an assumption. Scenarios can be duplicated and saved.",
+      f5t:"Exact ultimate pit",f5p:"Every shell is a maximum closure (NetworkX preflow-push), cross-checked against an independent max-flow solver and brute force.",
+      f6t:"Pit by pit",f6p:"Nested revenue-factor shells with best-, worst- and average-case NPV. The final pit is picked on discounted NPV; you can pick another shell and rerun.",
+      f7t:"Pushbacks and schedule",f7p:"Automatic pushbacks, a period schedule within feed capacity, the plan against best and worst case, and plan views per pushback, period or depth.",
+      f8t:"Sensitivity",f8p:"Final-pit NPV against price factors from 70 to 130%, with break-even and price leverage.",
+      f9t:"Block model viewer",f9p:"Slices per bench or N–S and E–W sections, coloured by grade, class or value.",
+      f10t:"Detailed design",f10p:"Crest and geotechnical sectors by azimuth, berm criteria (Ritchie, Ryan, or from the optimised slope), a spiral or switchback ramp sized from truck width, then generate benches and the ramp.",
+      f11t:"Validation and reconciliation",f11p:"Inter-ramp and overall angles are recomputed from the designed geometry and breaches are flagged per sector. Design tonnes and value are reconciled to the optimised shell. 1:1 sections.",
+      f12t:"3D and sections",f12p:"Topography, shell, face position, pushbacks and end-of-period surfaces you can play through. Vertical exaggeration 1–10×; draw a section line on the plan.",
+      f13t:"Compare scenarios",f13p:"Results of several scenarios of one project side by side.",
+      f14t:"Export",f14p:"Excel, a PDF report that carries the active warnings, DXF surfaces and benches for mine software, an offline 3D HTML viewer, CSV/XLSX tables, a JSON session with parameter provenance, and a zip package.",
+      f15t:"CLI, MCP, two languages",f15p:"<code>pitopt validate</code>, <code>run</code>, <code>reblock</code> and <code>ui</code> for scripting; an optional MCP server for AI assistants. English or Indonesian interface, dark mode.",
+      h2a:"How to use it, step by step",s2a:"With your own data in the desktop app. In the web demo, steps 1–3 are skipped and the results are precomputed.",
+      a1t:"Install and open",a1p:"Start the launcher (see Install). The app opens in your browser at http://127.0.0.1:8765.",
+      a2t:"Load data",a2p:"Quick Estimation for a fast result, or Manage → New project for the full wizard. Upload a block model CSV and, if you have one, a DXF or XYZ topography.",
+      a3t:"Fill in parameters",a3p:"Check the coordinate columns and block size, then enter prices, costs, recoveries, slopes, and capacity or mine life. Anything left blank is recorded as an assumption.",
+      a4t:"Run",a4p:"Click Run optimisation. Small models finish in seconds; a few hundred thousand blocks can take minutes. Memory is checked before the run starts.",
+      a5t:"Read the warnings and summary",a5p:"Data QA and the warning box on the Summary show what to check before you use the numbers.",
+      a6t:"Settle the final pit",a6p:"On Pit by Pit, accept the recommendation or click another shell and rerun.",
+      a7t:"Review pushbacks and schedule",a7p:"Plan views per pushback and period, the period plan table, best- and worst-case NPV.",
+      a8t:"Design the benches",a8p:"Detailed Design: set sectors and the ramp, Generate, then fix what Validation flags.",
+      a9t:"Export",a9p:"Download Excel, PDF, DXF or the 3D viewer, or everything at once as a zip.",
+      cap3:"Pit by pit: one bar per shell, final pit picked on discounted NPV.",
       cap2:"Pushbacks and the period plan for the same dataset.",
-      h2b:"What to know before you rely on it",s2b:"The closure is exact; everything around it is approximate. The output is not a resource or reserve estimate.",
-      b1t:"Sequenced, not optimised",b1p:"The schedule follows a specified pushback sequence, not a per-block optimum.",
-      b2t:"Model size limit",b2p:"Graphs live in memory, so models are limited to a few hundred thousand blocks.",
+      cap4:"Detailed design: 27 benches and a spiral ramp, slope breaches listed at the top.",
+      h2c:"Install on your computer",s2c:"Needs Python 3.10+ and Git. The launcher builds its own environment on first start (a few minutes); later starts take seconds. Your data never leaves your computer.",
+      cliT:"From the command line",inote:"Without Git: download the",inote2:"Full steps and troubleshooting:",inote3:"Source code:",
+      h2b:"Data and limits",s2b:"The closure is exact; everything around it is approximate. The output is not a resource or reserve estimate.",
+      d1t:"Data in the demo",d1p:"Two synthetic projects: a copper porphyry (75,696 blocks of 20×20×15 m) generated by a script, and a small tin example. Not real mine data. The web demo is read-only and uses precomputed results.",
+      d2t:"Your data",d2p:"In the desktop app, files are stored in the project folder on your computer and are not sent anywhere.",
+      b1t:"Sequenced, not optimised per block",b1p:"The schedule fills periods to capacity along the pushback sequence; blocks are not re-sequenced by MILP. Haul distances and equipment are not modelled.",
+      b4t:"One destination, one model",b4p:"Mill or waste; no stockpiles, blending or multiple process routes. One deterministic estimated model, no grade uncertainty.",
+      b2t:"Model size limit",b2p:"Graphs live in memory, so models are limited to a few hundred thousand blocks. Reblock to a larger block or clip the model for bigger deposits.",
+      b5t:"Automated design, not detailed design",b5p:"Benches, berms and the ramp are a first-pass design to reconcile against, not a replacement for detailed design and geotechnical review.",
       b3t:"Needs expert review",b3p:"A Competent Person must review designs under the applicable industry standard before use.",
-      h2c:"Install on your computer",s2c:"Needs Python 3.10+ and Git. The launcher builds its own environment on first start; your data never leaves your computer.",
-      inote:"Full steps and troubleshooting:",
+      b6t:"Licence",b6p:"Code is AGPL-3.0-only. Fonts (OFL-1.1) and MineLib benchmark files (CC BY-SA 3.0) keep their own licences.",
+      lnote:"Full details:",
       foot:"PitOpt is open-source software under the AGPL-3.0 licence, built by Orebit. Design results must be reviewed by a Competent Person before field use."}
   };
   var root = document.documentElement;
@@ -191,7 +322,7 @@ bash scripts/start_ui.sh</pre></div>
   function isDark(){return root.getAttribute("data-theme")==="dark"||(!root.getAttribute("data-theme")&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);}
   function applyLang(lang){
     if(!dict[lang])lang="id"; root.lang=lang;
-    document.querySelectorAll("[data-i18n]").forEach(function(el){var k=el.getAttribute("data-i18n");if(dict[lang][k])el.textContent=dict[lang][k];});
+    document.querySelectorAll("[data-i18n]").forEach(function(el){var k=el.getAttribute("data-i18n"),v=dict[lang][k];if(!v)return;if(/<code>/.test(v))el.innerHTML=v;else el.textContent=v;});
     document.getElementById("lang-id").setAttribute("aria-pressed",String(lang==="id"));
     document.getElementById("lang-en").setAttribute("aria-pressed",String(lang==="en"));
     writeStore("pitopt-lang",lang);
