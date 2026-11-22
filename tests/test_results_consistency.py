@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 End-to-end consistency of an engine run: what the UI shows must equal what an
 independent calculation from the exported block model gives. Runs against every

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 The engine's answers, recomputed by algorithms that share none of its code paths:
 

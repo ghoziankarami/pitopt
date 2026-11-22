@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // 06 · Penampang — a section along a line drawn on the plan, at 1:1 and at an exaggerated scale side by side.
 import { esc, fmt } from "../util.js";
 import { D, ensure, loadSection } from "../design/core.js";

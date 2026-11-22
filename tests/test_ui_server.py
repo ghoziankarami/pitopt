@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """UI server: read endpoints, path safety, override application."""
 import json
 import threading

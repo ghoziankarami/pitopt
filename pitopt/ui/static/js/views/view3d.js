@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 import { S, notify, ensureGrids3d } from "../store.js";
 import { A } from "../actions.js";
 import { fmt, esc, api, qs, toast } from "../util.js";

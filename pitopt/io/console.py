@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 Pit-by-pit reporting — the table the shell family exists to produce.
 

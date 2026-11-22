@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 A run writes into a staging directory and is promoted only when it finishes.
 

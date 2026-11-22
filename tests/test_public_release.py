@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Release regressions: closure edge cases, margins, and bounded demo requests."""
 import http.client
 import json

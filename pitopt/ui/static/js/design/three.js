@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // The oblique 3D view of the design (Plotly): benches drawn as they arrive, the road, the shell, the sector lines.
 // The vertical exaggeration is applied to the scene's aspect ratio and always shown, so the exaggerated wall is
 // never mistaken for the real one.

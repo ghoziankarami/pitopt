@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 DXF surface I/O — the interchange format survey and mine design actually
 use, so topography comes in as DXF and the pit shell goes back out as DXF.

@@ -121,7 +121,7 @@ If PitOpt is useful to you, a ⭐ on GitHub helps others find it.
 
 ## License and citation
 
-PitOpt is released under the [MIT License](LICENSE). Bundled fonts (OFL-1.1) and
+PitOpt is released under the [MIT License](LICENSE); copies and derivative works must keep the copyright notice, `LICENSE` and [NOTICE](NOTICE). The names "PitOpt" and "Orebit" and the logo are not licensed for forks or competing products; see [TRADEMARKS.md](TRADEMARKS.md). Bundled fonts (OFL-1.1) and
 MineLib benchmark files (CC BY-SA 3.0) keep their own licenses; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). If you use PitOpt in research,
 please cite it using [CITATION.cff](CITATION.cff) (GitHub's "Cite this repository" button).

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Browser evidence for delayed callbacks and a newly uploaded unsolved project."""
 import os
 import threading

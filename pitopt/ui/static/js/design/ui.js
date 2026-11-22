@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // Pieces every design screen uses: the page frame, the states that come before there is anything to show
 // (loading, no run yet, an error), parameter fields with their provenance, and the validation banner.
 import { notify as _n } from "../store.js";

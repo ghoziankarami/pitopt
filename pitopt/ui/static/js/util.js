@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // Formatting, colours and tiny helpers shared by every screen.
 import { locale, lang, t as tt } from "./i18n.js";
 const nf = (d) => new Intl.NumberFormat(locale(), { minimumFractionDigits: d, maximumFractionDigits: d });

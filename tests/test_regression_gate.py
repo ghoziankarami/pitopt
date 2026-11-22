@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 A locked copy of the engine's answer, so a change that was meant to add
 something cannot quietly move something else.

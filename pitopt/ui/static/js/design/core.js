@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // Detailed design (Desain Detail): the state every one of its screens shares, and the calls that fill it.
 //
 // One design is held per scenario. Parameter edits are a draft sent with each Generate; they never touch the

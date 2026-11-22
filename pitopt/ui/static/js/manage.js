@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // Project management: rename project / scenario, delete scenario / project (with a look at what goes first).
 import { S, notify, loadProjects2, select, scenarioMeta } from "./store.js";
 import { A } from "./actions.js";

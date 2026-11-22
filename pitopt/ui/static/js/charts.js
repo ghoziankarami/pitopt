@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // SVG / canvas charts. Colours come from CSS variables so light and dark
 // themes both work; nothing here knows about the DOM beyond returning strings.
 import { fmt, niceMax, stageColor, esc, mUSD } from "./util.js";

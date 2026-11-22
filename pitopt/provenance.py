@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Content identity for an optimisation run; paths and output locations are not credentials."""
 from __future__ import annotations
 

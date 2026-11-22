@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 import { S } from "../store.js";
 import { A } from "../actions.js";
 import { fmt, fmtInt, mUSD, mt, pct, pcts, signed, esc, tr } from "../util.js";

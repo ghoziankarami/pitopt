@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Bring-your-own-data path: inspection, project creation, and refusal of invented inputs."""
 import numpy as np
 import pandas as pd

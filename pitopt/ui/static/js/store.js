@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // Application state: the projects, the selected scenario, its results and
 // the parameter edits not yet run. Views read S and call the actions.
 import { api, qs, clone } from "./util.js";

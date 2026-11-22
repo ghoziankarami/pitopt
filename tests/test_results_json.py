@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Unavailable diagnostics remain explicit nulls in strict JSON output."""
 import json
 from pathlib import Path

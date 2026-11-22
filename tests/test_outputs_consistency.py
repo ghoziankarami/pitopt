@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 The files a user hands on (Excel, PDF, DXF, CSV) must carry the same numbers as the run's
 results.json, which is what the UI shows. Runs against every `outputs/*/*_results.json`.

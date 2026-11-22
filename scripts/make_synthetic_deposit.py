@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 Generate a synthetic but geologically-coherent porphyry copper dataset in
 the pipeline's standard formats: block model CSV + topography DXF.

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Fail closed on unknown material; independent metal-mass answers in native units."""
 from pathlib import Path
 

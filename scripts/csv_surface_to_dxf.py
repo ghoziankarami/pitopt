@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 Convert an XYZ point CSV (DEM export, drone/LiDAR dump, survey pickups)
 into a DXF 3DFACE surface, so a CSV topography can feed the DXF-first

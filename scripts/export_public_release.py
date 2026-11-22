@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Export a clean public snapshot of PitOpt's tracked source to a target folder.
 
 Only git-tracked files are copied. Internal agent-orchestration files, handover

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """A finished job or a delayed confirmation must not change another selected context."""
 import test_selection_state
 

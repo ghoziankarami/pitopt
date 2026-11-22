@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Tests for cross-platform PitOpt launchers (PitOpt.bat, scripts/start_ui.sh, and `pitopt ui`)."""
 from __future__ import annotations
 

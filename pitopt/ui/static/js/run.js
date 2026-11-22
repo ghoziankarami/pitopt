@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 // Starting a run: name the scenario when parameters changed, POST it, and
 // hand over to the Jalankan screen which streams the log.
 import { S, notify } from "./store.js";

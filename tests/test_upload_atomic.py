@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """A malformed or interrupted replacement must preserve the user's valid input."""
 import http.client
 import threading

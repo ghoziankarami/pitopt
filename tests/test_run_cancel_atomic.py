@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """
 Cancelling a run and the promise behind it (PRD F-RUN-4): stop without
 damaging the previous result.

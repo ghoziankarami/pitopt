@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 """Independent whole-block capacity and cash timing examples."""
 import numpy as np
 import pandas as pd

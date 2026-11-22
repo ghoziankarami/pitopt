@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
 import { esc } from "./util.js";
 import { tx } from "./i18n.js";
 export function modal(title, bodyHtml, buttons = "") {
