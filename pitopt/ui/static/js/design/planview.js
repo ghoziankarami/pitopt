@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // The plan view every design screen paints: the block slice, the shell and the design outline, the road and the
 // sector lines. Everything is drawn from the plan and result the server sent; nothing is recomputed here.
 import { D } from "./core.js";

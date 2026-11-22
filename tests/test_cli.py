@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 The command line — what `make example`, `make porphyry` and anyone scripting PitOpt actually call.
 

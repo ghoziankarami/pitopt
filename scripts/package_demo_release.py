@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """Package only verified synthetic demo runtime and its exact installed application wheel."""
 from __future__ import annotations
 

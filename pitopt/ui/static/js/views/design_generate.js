@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Generate & Tinjau — compute the design, watch it arrive bench by bench in 3D, cancel it, read the result.
 import { A } from "../actions.js";
 import { esc, fmt } from "../util.js";

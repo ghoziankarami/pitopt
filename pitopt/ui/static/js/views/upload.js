@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // New project & 1-screen Quick Pit Estimation: sample/CSV → instant pre-validation & RAM → run → KPI & 3D.
 import { S, notify, loadProjects2, select, ensureGrids3d } from "../store.js";
 import { A } from "../actions.js";

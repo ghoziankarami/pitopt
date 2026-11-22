@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """Smoke-test an installed wheel, outside the source checkout.
 
 CI invokes this with the clean venv's Python and -I. Only standard-library

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Block model viewer: plan slices per bench and E-W / N-S sections, coloured by any attribute.
 import { S, notify } from "../store.js";
 import { A } from "../actions.js";

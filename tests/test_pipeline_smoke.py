@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 End-to-end smoke test on synthetic data. Run this before pointing the
 pipeline at a real resource — it confirms the local environment

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 Concatenate the whole system — package, scripts, configs, docs — into one
 Markdown file, so the complete source can be handed to a fresh session or

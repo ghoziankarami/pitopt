@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 MCP server wrapping pitopt, so a pit run can be driven from an MCP client
 (Claude Desktop, Claude Code, anything else that speaks MCP).

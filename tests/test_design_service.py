@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 The design as the UI drives it: state, Generate with progress, Cancel, the
 finished geometry, a block slice, a section and the export, all over HTTP.

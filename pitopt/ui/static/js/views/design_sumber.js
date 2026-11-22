@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Sumber shell — where the design starts from: the PitOpt run, its shell, the starting parameters and the
 // block model, with a plan of the shell over the blocks.
 import { D, ensure } from "../design/core.js";

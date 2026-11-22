@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 The Desain Detail screens in a real browser: every screen loads without a script error, Generate streams and can
 be cancelled, an edited parameter is a visible draft, the states that come before there is a design (no run, a

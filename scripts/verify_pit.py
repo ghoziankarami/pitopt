@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 Independent geometric checks on a solved pit — they do not reuse the
 solver's own precedence arcs, so a fault in the template cannot hide

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 Bringing your own data into the UI: inspect an uploaded file, guess the column
 mapping, and write a project.yaml the engine can run.

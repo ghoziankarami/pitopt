@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // A vertical section along a line: the designed wall (bench and berm), the optimiser shell's stair, a strip of the
 // block model one cell thick, the ground, and where the road crosses. Drawn at any vertical exaggeration; the scale
 // is written on the drawing itself, so a picture taken from it can never be read as 1:1 when it is not.

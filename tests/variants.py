@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 Synthetic deposits that cover the kinds of data a real project brings, so the independent consistency checks
 run against more than one commodity on every machine — not only where someone happened to have a client's

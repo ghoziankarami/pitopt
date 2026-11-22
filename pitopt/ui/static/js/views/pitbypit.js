@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 import { S, notify } from "../store.js";
 import { A } from "../actions.js";
 import { startRun } from "../run.js";

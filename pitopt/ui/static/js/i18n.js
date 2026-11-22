@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // Interface language defaults to English. The screens are written in Indonesian;
 // English is a dictionary applied to the HTML (and short strings) just before it reaches the DOM, so every
 // screen, chart label, dialog and toast switches together and numbers, dates and

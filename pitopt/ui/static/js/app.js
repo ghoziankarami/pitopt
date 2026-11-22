@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 import { S, subscribe, loadProjects, select, notify, setTheme, scenarioMeta } from "./store.js";
 import { esc, fmt, fmtInt, api, qs, toast, tr, $ } from "./util.js";
 import { A } from "./actions.js";

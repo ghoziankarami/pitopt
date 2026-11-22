@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Ekspor — what gets written, the DXF layer structure, and the provenance every file carries.
 import { A } from "../actions.js";
 import { t } from "../i18n.js";

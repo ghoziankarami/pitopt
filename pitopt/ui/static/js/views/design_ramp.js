@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Ramp — the haul road: pattern, width from the truck, grade, and what it does to the overall slope angle.
 import { A } from "../actions.js";
 import { esc, fmt } from "../util.js";

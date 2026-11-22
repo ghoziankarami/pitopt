@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+# Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 """
 Every screen of the app, in a real browser, on every commodity the suite runs: tin (per cent by mass), gold
 (g/t, per ounce), rare earths (ppm, per kilogram, classes and domains) and mineral sands (volume per cent,

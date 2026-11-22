@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Ghozi Ankarami and PitOpt contributors
+// Copyright (c) 2026 Orebit (Ghozian Islam Karami)
 // 06 · Validasi & Rekonsiliasi — every criterion recomputed from the generated geometry, the design against the
 // shell in three tiers, dilution traced to its cause, and the block-by-block map of one bench.
 import { esc, fmt, fmtInt, signed } from "../util.js";

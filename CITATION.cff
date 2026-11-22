@@ -3,8 +3,9 @@ message: "If you use PitOpt, please cite it as below."
 title: "PitOpt: open-source open-pit strategic mine planning"
 type: software
 authors:
-  - given-names: Ghozi
-    family-names: Ankarami
+  - given-names: Ghozian Islam
+    family-names: Karami
+    affiliation: Orebit
 version: 1.0.0
 date-released: 2026-10-01
 license: MIT
