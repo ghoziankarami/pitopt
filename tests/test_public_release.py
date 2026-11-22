@@ -198,7 +198,8 @@ def test_grids3d_endpoint_is_whole_metres_and_results_omit_grids(tmp_path):
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:
         def get(path):
-            c = http.client.HTTPConnection("127.0.0.1", httpd.server_port); c.request("GET", path)
+            c = http.client.HTTPConnection("127.0.0.1", httpd.server_port)
+            c.request("GET", path)
             return json.loads(c.getresponse().read())
         q = "project=example_tin&scenario=project"
         results = get(f"/api/results?{q}")
